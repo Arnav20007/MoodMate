@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MoodMate | Advanced Mental Health Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366F1;
+            --primary-dark: #4F46E5;
+            --secondary: #0EA5E9;
+            --accent: #F59E0B;
+            --success: #10B981;
+            --light: #F8FAFC;
+            --dark: #1E293B;
+            --gray: #64748B;
+            --gradient-primary: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+            --gradient-secondary: linear-gradient(135deg, #0EA5E9 0%, #3B82F6 100%);
+            --gradient-accent: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+            --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header & Navigation */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .header-scrolled {
+            padding: 10px 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            background: var(--gradient-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-links a {
+            color: var(--dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a:after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .nav-links a:hover:after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gradient-primary);
+            color: white;
+            padding: 12px 28px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            border: none;
+            cursor: pointer;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 160px 0 100px;
+            background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)), 
+                        url('https://images.unsplash.com/photo-1593811167562-9cef47bfc5d7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+            opacity: 0.03;
+            z-index: -1;
+        }
+
+        .hero-content {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            color: var(--dark);
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 40px;
+            color: var(--gray);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 50px;
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 60px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--gray);
+        }
+
+        /* AI Assistant */
+        .ai-assistant {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 999;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ai-assistant:hover {
+            transform: scale(1.1);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 70px;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--gray);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 0;
+            background: var(--gradient-primary);
+            transition: height 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-card:hover::before {
+            height: 100%;
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: 100px 0;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+            position: relative;
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .testimonial-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .testimonial-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .testimonial-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+            align-self: center;
+            border: 3px solid var(--primary);
+            padding: 3px;
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .testimonial-text::before {
+            content: """;
+            font-size: 4rem;
+            color: var(--primary);
+            opacity: 0.2;
+            position: absolute;
+            top: -20px;
+            left: -10px;
+            font-family: sans-serif;
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+            color: var(--primary);
+            margin-top: auto;
+        }
+
+        /* Resources Section */
+        .resources {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .resource-card {
+            background: var(--light);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .resource-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .resource-content {
+            padding: 25px;
+        }
+
+        .resource-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+
+        .resource-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        /* AI-Powered Assessment */
+        .ai-assessment {
+            padding: 100px 0;
+            background: var(--gradient-primary);
+            color: white;
+            text-align: center;
+        }
+
+        .ai-assessment-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .ai-assessment h2 {
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .ai-assessment p {
+            margin-bottom: 40px;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Community Section */
+        .community {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .community-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .community-card {
+            background: var(--light);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .community-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .community-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark);
+            color: white;
+            padding: 80px 0 30px;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+
+        .footer-links a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        /* AI Chat Styles */
+        .ai-chat-container {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 350px;
+            height: 450px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: 15px;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+
+        .ai-message {
+            background: #f1f5f9;
+            align-self: flex-start;
+        }
+
+        .user-message {
+            background: var(--gradient-primary);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .chat-input input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 50px;
+            margin-right: 10px;
+        }
+
+        /* Assessment Styles */
+        .assessment-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            padding: 30px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .assessment-question {
+            margin-bottom: 20px;
+        }
+
+        .assessment-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .assessment-option {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .assessment-option:hover {
+            background: #f1f5f9;
+        }
+
+        .assessment-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease forwards;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .nav-links {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .hero p {
+                font-size: 1.1rem;
+            }
+            
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 30px;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .features-grid, .testimonial-grid, .resources-grid, .community-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ai-chat-container {
+                width: 90%;
+                right: 5%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- AI Assistant Chat -->
+    <div class="ai-chat-container" id="aiChat">
+        <div class="chat-header">
+            <h3>MoodMate AI Assistant</h3>
+            <button class="close-modal" onclick="closeChat()">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai-message">
+                Hello! I am MoodMate AI. How can I support your mental wellness today?
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Type your message here...">
+            <button class="btn" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Assessment Container -->
+    <div class="assessment-container" id="assessmentContainer">
+        <div class="modal-header">
+            <h2 id="assessmentTitle">Mental Health Assessment</h2>
+            <button class="close-modal" onclick="closeAssessment()">&times;</button>
+        </div>
+        <div id="assessmentContent">
+            <!-- Assessment content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- AI Assistant -->
+    <div class="ai-assistant" onclick="openChat()">
+        <i class="fas fa-robot"></i>
+    </div>
+
+    <!-- Header -->
+    <header id="header">
+        <div class="container header-content">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <span>MoodMate</span>
+            </a>
+            <div class="nav-links">
+                <a href="#" onclick="showModal('mentalHealthInfo')">Mental Health Info</a>
+                <a href="#" onclick="showModal('helpSupport')">Help & Support</a>
+                <a href="#" onclick="showModal('community')">Community</a>
+                <a href="#" onclick="showModal('resources')">Resources</a>
+                <a href="#" onclick="showModal('getSupport')">Get Support</a>
+            </div>
+            <div class="nav-cta">
+                <a href="/login" class="btn-secondary">Log In</a>
+                <a href="/signup" class="btn">Sign Up</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container hero-content fade-in">
+            <h1>Revolutionizing Mental Wellness with AI</h1>
+            <p>MoodMate combines cutting-edge technology with clinical expertise to deliver personalized mental health support for everyone.</p>
+            <div class="hero-buttons">
+                <a href="/app" class="btn"><i class="fas fa-play-circle"></i> Get Started</a>
+                <a href="#" class="btn-secondary" onclick="showModal('learnMore')"><i class="fas fa-search"></i> Learn More</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number">500K+</div>
+                    <div class="stat-label">Users Helped</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">98%</div>
+                    <div class="stat-label">Satisfaction Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">24/7</div>
+                    <div class="stat-label">Support Available</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="section-header fade-in">
+                <h2 class="section-title">How MoodMate Helps You</h2>
+                <p class="section-subtitle">Discover our advanced features designed to support your mental wellness journey</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="feature-title">AI-Powered Insights</h3>
+                    <p>Our advanced AI analyzes your mood patterns and provides personalized recommendations.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h3 class="feature-title">Therapist Matching</h3>
+                    <p>Connect with licensed professionals who specialize in your specific needs.</p>
+                </div>
+                <div class="feature-card fade-in">
+                    <div class="feature-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3 class="feature-title">Support Community</h3>
+                    <p>Join a safe, moderated community of people who understand what you're going through.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-header fade-in">
+                <h2 class="section-title">Hear From Our Community</h2>
+                <p class="section-subtitle">See how MoodMate has transformed mental wellness for people around the world</p>
+            </div>
+            <div class="testimonial-grid">
+                <div class="testimonial-card fade-in">
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Arnav" class="testimonial-avatar">
+                    <p class="testimonial-text">As the founder of MoodMate, I've seen firsthand how our platform transforms lives. We've built something truly special that makes mental health support accessible to everyone.</p>
+                    <p class="testimonial-author">Arnav, Founder</p>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1740&q=80" alt="Aaryan" class="testimonial-avatar">
+                    <p class="testimonial-text">MoodMate's AI insights helped me understand my anxiety patterns in ways I never could before. The personalized recommendations have been life-changing.</p>
+                    <p class="testimonial-author">Aaryan, Head of Product</p>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Ankur" class="testimonial-avatar">
+                    <p class="testimonial-text">The therapist matching algorithm found me the perfect professional who understands my cultural background and specific needs.</p>
+                    <p class="testimonial-author">Ankur, Lead Developer</p>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <img src="https://images.unsplash.com/photo-1519345182560-3f2917c472ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Akash" class="testimonial-avatar">
+                    <p class="testimonial-text">As a mental health professional, I'm impressed by MoodMate's comprehensive approach. It's a game-changer for the industry.</p>
+                    <p class="testimonial-author">Akash, Clinical Advisor</p>
+                </div>
+                <div class="testimonial-card fade-in">
+                    <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=774&q=80" alt="Nitin" class="testimonial-avatar">
+                    <p class="testimonial-text">The community features have connected me with others who understand what I'm going through. It's made my mental health journey less isolating.</p>
+                    <p class="testimonial-author">Nitin, Community Manager</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Assessment Section -->
+    <section class="ai-assessment">
+        <div class="container ai-assessment-content fade-in">
+            <h2>Take Our Advanced Mental Health Assessment</h2>
+            <p>Our AI-powered assessment analyzes over 50 factors to provide personalized insights and recommendations for your mental wellness journey.</p>
+            <button class="btn" onclick="startAssessment()"><i class="fas fa-star"></i> Start Assessment</button>
+        </div>
+    </section>
+
+    <!-- Resources Section -->
+    <section class="resources">
+        <div class="container">
+            <div class="section-header fade-in">
+                <h2 class="section-title">Mental Health Resources</h2>
+                <p class="section-subtitle">Explore our comprehensive library of mental health information</p>
+            </div>
+            <div class="resources-grid">
+                <div class="resource-card fade-in" onclick="openArticle('anxiety')">
+                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=870&q=80" alt="Understanding Anxiety" class="resource-img">
+                    <div class="resource-content">
+                        <h3 class="resource-title">Understanding Anxiety Disorders</h3>
+                        <div class="resource-meta">
+                            <span>Est. 8 minutes read</span>
+                            <span>Sep 15, 2025</span>
+                        </div>
+                        <p>Learn about anxiety disorders, symptoms, and evidence-based coping strategies.</p>
+                    </div>
+                </div>
+                <div class="resource-card fade-in" onclick="openArticle('mindfulness')">
+                    <img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=820&q=80" alt="Mindfulness Techniques" class="resource-img">
+                    <div class="resource-content">
+                        <h3 class="resource-title">Advanced Mindfulness Techniques</h3>
+                        <div class="resource-meta">
+                            <span>Est. 6 minutes read</span>
+                            <span>Sep 10, 2025</span>
+                        </div>
+                        <p>Practical mindfulness exercises to reduce stress and improve focus.</p>
+                    </div>
+                </div>
+                <div class="resource-card fade-in" onclick="openArticle('resilience')">
+                    <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=799&q=80" alt="Building Resilience" class="resource-img">
+                    <div class="resource-content">
+                        <h3 class="resource-title">Building Emotional Resilience</h3>
+                        <div class="resource-meta">
+                            <span>Est. 10 minutes read</span>
+                            <span>Sep 5, 2025</span>
+                        </div>
+                        <p>Develop emotional resilience to better handle life's challenges.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Section -->
+    <section class="community">
+        <div class="container">
+            <div class="section-header fade-in">
+                <h2 class="section-title">Join Our Global Community</h2>
+                <p class="section-subtitle">Connect with others who understand your journey</p>
+            </div>
+            <div class="community-grid">
+                <div class="community-card fade-in">
+                    <div class="community-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Support Groups</h3>
+                    <p>Join moderated support groups for various mental health challenges.</p>
+                </div>
+                <div class="community-card fade-in">
+                    <div class="community-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>Live Events</h3>
+                    <p>Participate in workshops and events led by mental health professionals.</p>
+                </div>
+                <div class="community-card fade-in">
+                    <div class="community-icon">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <h3>Peer Support</h3>
+                    <p>Connect one-on-one with peers who have similar experiences.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>MoodMate</h3>
+                    <p>Your AI-powered companion for mental wellness and emotional health.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="showModal('mentalHealthLibrary')">Mental Health Library</a></li>
+                        <li><a href="#" onclick="showModal('wellnessTools')">Wellness Tools</a></li>
+                        <li><a href="#" onclick="showModal('communityForum')">Community Forum</a></li>
+                        <li><a href="#" onclick="showModal('professionalDirectory')">Professional Directory</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Support</h3>
+                    <ul class="footer-links">
+                        <li><a href="#" onclick="showModal('crisisResources')">Crisis Resources</a></li>
+                        <li><a href="#" onclick="showModal('faq')">FAQ</a></li>
+                        <li><a href="#" onclick="showModal('contactUs')">Contact Us</a></li>
+                        <li><a href="#" onclick="showModal('privacyPolicy')">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Emergency Resources</h3>
+                    <ul class="footer-links">
+                        <li><a href="tel:741741">Crisis Text Line: Text HOME to 741741</a></li>
+                        <li><a href="tel:988">National Suicide Prevention Lifeline: 988</a></li>
+                        <li><a href="tel:911">Emergency: 911</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2025 MoodMate. All rights reserved. Made with ❤️ for better mental health.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Modal Title</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', function() {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('header-scrolled');
+            } else {
+                header.classList.remove('header-scrolled');
+            }
+        });
+
+        // Animation on scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const fadeElements = document.querySelectorAll('.fade-in');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            fadeElements.forEach(element => {
+                element.style.opacity = 0;
+                element.style.transition = 'opacity 0.5s ease-in-out';
+                observer.observe(element);
+            });
+        });
+
+        // Modal functionality
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        
+        function showModal(type) {
+            // Set modal content based on type
+            switch(type) {
+                case 'mentalHealthInfo':
+                    modalTitle.textContent = 'Mental Health Information';
+                    modalBody.innerHTML = `
+                        <p>Mental health includes our emotional, psychological, and social well-being. It affects how we think, feel, and act.</p>
+                        <h3>Common Mental Health Conditions</h3>
+                        <ul>
+                            <li>Anxiety Disorders</li>
+                            <li>Depression</li>
+                            <li>Bipolar Disorder</li>
+                            <li>Post-Traumatic Stress Disorder (PTSD)</li>
+                            <li>Obsessive-Compulsive Disorder (OCD)</li>
+                        </ul>
+                        <p>Understanding these conditions is the first step toward managing them effectively.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'helpSupport':
+                    modalTitle.textContent = 'Help & Support';
+                    modalBody.innerHTML = `
+                        <p>If you're struggling with your mental health, you're not alone. Help is available.</p>
+                        <h3>Immediate Support</h3>
+                        <ul>
+                            <li><strong>Crisis Text Line:</strong> Text HOME to 741741</li>
+                            <li><strong>National Suicide Prevention Lifeline:</strong> Call 988</li>
+                            <li><strong>Emergency Services:</strong> Call 911</li>
+                        </ul>
+                        <h3>Ongoing Support</h3>
+                        <ul>
+                            <li>Therapy and counseling services</li>
+                            <li>Support groups</li>
+                            <li>Online resources and tools</li>
+                        </ul>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'community':
+                    modalTitle.textContent = 'Community';
+                    modalBody.innerHTML = `
+                        <p>Join our supportive community of individuals who understand what you're going through.</p>
+                        <h3>Community Features</h3>
+                        <ul>
+                            <li>Anonymous discussion forums</li>
+                            <li>Peer support groups</li>
+                            <li>Expert-led workshops</li>
+                            <li>Success stories and shared experiences</li>
+                        </ul>
+                        <p>Our community is a safe space to share, learn, and grow together.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'resources':
+                    modalTitle.textContent = 'Resources';
+                    modalBody.innerHTML = `
+                        <p>Access our comprehensive library of mental health resources.</p>
+                        <h3>Available Resources</h3>
+                        <ul>
+                            <li>Articles on various mental health topics</li>
+                            <li>Self-help guides and workbooks</li>
+                            <li>Meditation and mindfulness exercises</li>
+                            <li>Professional therapist directory</li>
+                            <li>Crisis intervention resources</li>
+                        </ul>
+                        <p>All resources are vetted by mental health professionals.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'getSupport':
+                    modalTitle.textContent = 'Get Support';
+                    modalBody.innerHTML = `
+                        <p>Find the right support for your mental health journey.</p>
+                        <h3>Ways to Get Support</h3>
+                        <ul>
+                            <li>Connect with licensed therapists</li>
+                            <li>Join support groups</li>
+                            <li>Access crisis resources</li>
+                            <li>Use self-help tools</li>
+                        </ul>
+                        <p>Take the first step toward better mental health today.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'learnMore':
+                    modalTitle.textContent = 'About MoodMate';
+                    modalBody.innerHTML = `
+                        <p>MoodMate is an AI-powered mental health platform designed to make mental wellness support accessible to everyone.</p>
+                        <h3>Our Mission</h3>
+                        <p>To provide personalized, evidence-based mental health support through cutting-edge technology and compassionate care.</p>
+                        <h3>Our Team</h3>
+                        <p>Founded by Arnav and developed by a team of mental health professionals, technologists, and designers who are passionate about improving mental wellness.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                // Add cases for other modal types as needed
+                default:
+                    modalTitle.textContent = 'Information';
+                    modalBody.innerHTML = `
+                        <p>Comprehensive information about ${type} is available in our full platform.</p>
+                        <p>Please log in or sign up to access all features.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+            }
+            
+            modal.style.display = 'flex';
+        }
+        
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Close modal when clicking outside content
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        // AI Chat functionality
+        function openChat() {
+            document.getElementById('aiChat').style.display = 'flex';
+        }
+
+        function closeChat() {
+            document.getElementById('aiChat').style.display = 'none';
+        }
+
+        function sendMessage() {
+            const userInput = document.getElementById('userInput');
+            const chatMessages = document.getElementById('chatMessages');
+            
+            if (userInput.value.trim() === '') return;
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = userInput.value;
+            chatMessages.appendChild(userMessage);
+            
+            // Clear input
+            const message = userInput.value;
+            userInput.value = '';
+            
+            // Simulate AI response (in a real app, this would call an API)
+            setTimeout(() => {
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai-message';
+                
+                // Simple response logic
+                if (message.toLowerCase().includes('anxiety')) {
+                    aiMessage.textContent = 'I understand you\'re asking about anxiety. Would you like to learn about coping strategies or speak with a professional?';
+                } else if (message.toLowerCase().includes('depress')) {
+                    aiMessage.textContent = 'Depression can be challenging. MoodMate has resources and professionals who can help. Would you like me to direct you to our depression resources?';
+                } else if (message.toLowerCase().includes('stress')) {
+                    aiMessage.textContent = 'Stress management is important for mental wellness. We have mindfulness exercises and stress reduction techniques available. Would you like to try one?';
+                } else {
+                    aiMessage.textContent = 'Thank you for sharing. How can I best support you with this? Would you like resources, exercises, or to connect with a professional?';
+                }
+                
+                chatMessages.appendChild(aiMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1000);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Allow pressing Enter to send message
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Assessment functionality
+        function startAssessment() {
+            const assessmentContainer = document.getElementById('assessmentContainer');
+            const assessmentContent = document.getElementById('assessmentContent');
+            
+            assessmentContent.innerHTML = `
+                <div class="assessment-question">
+                    <h3>Question 1 of 5</h3>
+                    <p>Over the last two weeks, how often have you felt little interest or pleasure in doing things?</p>
+                    <div class="assessment-options">
+                        <div class="assessment-option" onclick="nextQuestion(1)">Not at all</div>
+                        <div class="assessment-option" onclick="nextQuestion(2)">Several days</div>
+                        <div class="assessment-option" onclick="nextQuestion(3)">More than half the days</div>
+                        <div class="assessment-option" onclick="nextQuestion(4)">Nearly every day</div>
+                    </div>
+                </div>
+                <div class="assessment-nav">
+                    <button class="btn-secondary" onclick="closeAssessment()">Cancel</button>
+                    <span>1 of 5</span>
+                </div>
+            `;
+            
+            assessmentContainer.style.display = 'block';
+        }
+
+        function nextQuestion(score) {
+            // In a real app, this would store the score and show the next question
+            const assessmentContent = document.getElementById('assessmentContent');
+            
+            assessmentContent.innerHTML = `
+                <div class="assessment-question">
+                    <h3>Thank you for your responses</h3>
+                    <p>Based on your answers, we recommend exploring our resources on mood management and connecting with one of our professionals.</p>
+                    <p>For a complete assessment and personalized plan, please create an account.</p>
+                </div>
+                <div class="assessment-nav">
+                    <button class="btn-secondary" onclick="closeAssessment()">Close</button>
+                    <button class="btn" onclick="window.location.href='/signup'">Sign Up Now</button>
+                </div>
+            `;
+        }
+
+        function closeAssessment() {
+            document.getElementById('assessmentContainer').style.display = 'none';
+        }
+
+        // Article reading functionality
+        function openArticle(article) {
+            let title, content;
+            
+            switch(article) {
+                case 'anxiety':
+                    title = 'Understanding Anxiety Disorders';
+                    content = `
+                        <p>Anxiety disorders are the most common mental health concern in the United States. An estimated 40 million adults in the U.S., or 18.1% of the population, have an anxiety disorder.</p>
+                        <h3>Types of Anxiety Disorders</h3>
+                        <ul>
+                            <li>Generalized Anxiety Disorder (GAD)</li>
+                            <li>Panic Disorder</li>
+                            <li>Social Anxiety Disorder</li>
+                            <li>Phobia-related disorders</li>
+                        </ul>
+                        <h3>Symptoms</h3>
+                        <p>Common anxiety signs and symptoms include:</p>
+                        <ul>
+                            <li>Feeling nervous, restless or tense</li>
+                            <li>Having a sense of impending danger, panic or doom</li>
+                            <li>Having an increased heart rate</li>
+                            <li>Breathing rapidly (hyperventilation)</li>
+                            <li>Sweating</li>
+                            <li>Trembling</li>
+                            <li>Feeling weak or tired</li>
+                        </ul>
+                        <h3>Treatment and Coping Strategies</h3>
+                        <p>Anxiety disorders are treatable, and many people experience significant improvement with professional care. Treatment approaches include:</p>
+                        <ul>
+                            <li>Cognitive Behavioral Therapy (CBT)</li>
+                            <li>Medication</li>
+                            <li>Mindfulness and meditation practices</li>
+                            <li>Lifestyle changes (exercise, sleep, nutrition)</li>
+                        </ul>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'mindfulness':
+                    title = 'Advanced Mindfulness Techniques';
+                    content = `
+                        <p>Mindfulness is the practice of purposely focusing your attention on the present moment and accepting it without judgment.</p>
+                        <h3>Benefits of Mindfulness</h3>
+                        <p>Studies have shown that practicing mindfulness, even for just a few weeks, can bring a variety of physical, psychological, and social benefits.</p>
+                        <h3>Techniques to Try</h3>
+                        <ul>
+                            <li>Body scan meditation</li>
+                            <li>Sitting meditation</li>
+                            <li>Walking meditation</li>
+                            <li>Mindful eating</li>
+                        </ul>
+                        <h3>Getting Started</h3>
+                        <p>Start with short periods of about 5-10 minutes per day. As with any skill, your ability to be mindful will improve with practice.</p>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+                case 'resilience':
+                    title = 'Building Emotional Resilience';
+                    content = `
+                        <p>Emotional resilience is your ability to adapt to stressful situations or crises. It's the ability to bounce back from difficult experiences.</p>
+                        <h3>Why Resilience Matters</h3>
+                        <p>Resilient people are able to cope with challenges in ways that maintain their well-being. They don't avoid stress but rather face it with effective strategies.</p>
+                        <h3>Building Resilience</h3>
+                        <ul>
+                            <li>Build strong relationships</li>
+                            <li>Practice mindfulness</li>
+                            <li>Take care of your physical health</li>
+                            <li>Find purpose and meaning</li>
+                            <li>Develop problem-solving skills</li>
+                            <li>Establish goals and take steps toward them</li>
+                        </ul>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn" onclick="closeModal()">Close</button>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            modalTitle.textContent = title;
+            modalBody.innerHTML = content;
+            modal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+.therapy-hub {
+  padding: 2rem 3rem;
+  height: 100%;
+  overflow-y: auto;
+  background-color: var(--bg-main);
+}
+
+.therapy-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+.therapy-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.therapy-header p {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  padding: 1rem;
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+}
+.filter-bar input,
+.filter-bar select {
+  flex-grow: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+.filter-bar input:focus, .filter-bar select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.2);
+}
+
+.therapists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 2rem;
+}
+
+.therapist-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+}
+.therapist-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.therapist-card-header { display: flex; align-items: center; gap: 1rem; padding: 1.5rem; }
+.therapist-avatar { font-size: 2.5rem; }
+.therapist-header-info h4 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--text-primary); }
+.therapist-header-info p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+.therapist-card-body { padding: 0 1.5rem 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+.therapist-stats { display: flex; justify-content: space-between; padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; font-weight: 500; color: var(--text-secondary); }
+.therapist-stats span { display: flex; align-items: center; gap: 0.25rem; }
+.therapist-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.therapist-tags span { background-color: #eef2ff; color: var(--primary-color); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+.therapist-bio { flex-grow: 1; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; }
+.therapist-card-footer { display: flex; gap: 1rem; padding: 1rem 1.5rem; background-color: #f8f9fa; border-top: 1px solid var(--border-color); }
+.book-btn, .info-btn { flex: 1; padding: 0.75rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: var(--transition); }
+.info-btn { background-color: #e9ecef; color: var(--text-primary); border: 1px solid #dee2e6; }
+.book-btn { background: var(--primary-gradient); color: white; border: none; }
+.book-btn:hover, .info-btn:hover { transform: scale(1.03); }
+
+/* === BILLION DOLLAR MODAL & FORM === */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center; z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+.modal-content {
+  background: var(--card-bg); border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3); width: 100%;
+  max-width: 600px; position: relative;
+  border: 1px solid rgba(255,255,255,0.1);
+  animation: slideUp 0.4s ease-out;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.close-btn {
+  position: absolute; top: 1rem; right: 1rem;
+  background: #f1f3f5; border: none; color: var(--text-secondary);
+  font-size: 1.2rem; width: 32px; height: 32px;
+  border-radius: 50%; cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.close-btn:hover { background: #e9ecef; transform: rotate(90deg); }
+
+/* Details Modal Specifics */
+.details-modal-header { text-align: center; padding: 2rem; border-bottom: 1px solid var(--border-color); }
+.details-modal-header h2 { margin: 1rem 0 0.25rem; }
+.details-modal-header p { color: var(--text-secondary); }
+.details-modal-body { padding: 2rem; line-height: 1.7; color: var(--text-secondary); }
+.details-modal-body p { margin-bottom: 1rem; }
+
+/* Booking Form Specifics */
+.booking-form-header { text-align: center; padding: 2rem; background: var(--bg-main); border-radius: var(--radius) var(--radius) 0 0; }
+.booking-form-header h3 { color: var(--text-secondary); font-weight: 500; }
+.booking-form-header h2 { color: var(--primary-color); }
+.booking-form { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); }
+.form-group input, .form-group select, .form-group textarea {
+  padding: 0.8rem 1rem; border: 1px solid #ced4da;
+  border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif;
+  background-color: var(--card-bg); transition: var(--transition);
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.2);
+}
+.time-slots { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.time-slot-btn {
+  padding: 0.6rem 1rem; background: #f1f3f5; border: 1px solid #dee2e6;
+  border-radius: 8px; cursor: pointer; font-weight: 500; transition: var(--transition);
+}
+.time-slot-btn.selected {
+  background: var(--primary-color); color: white; border-color: var(--primary-color);
+}
+.booking-summary {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);
+}
+.booking-summary span { font-size: 1.1rem; color: var(--text-secondary); }
+.confirm-booking-btn {
+  padding: 0.8rem 1.5rem; font-size: 1rem;
+  background: var(--primary-gradient); color: white;
+  border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+  transition: var(--transition);
+}
+.confirm-booking-btn:hover { transform: scale(1.03); }
+/* === DEFINITIVE FIX FOR INVISIBLE BUTTONS === */
+/* This code is highly specific to override any conflicting styles from other files. */
+
+.therapist-card-footer .book-btn {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%) !important;
+    color: white !important; /* Use !important to force the text to be white */
+    border: none !important;
+}
+
+.therapist-card-footer .info-btn {
+    background-color: #e9ecef !important;
+    color: #1F2349 !important; /* Force the text to be dark */
+    border: 1px solid #dee2e6 !important;
+}
