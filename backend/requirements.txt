@@ -8,6 +8,7 @@ SQLAlchemy==2.0.23
 bcrypt==4.0.1
 PyJWT==2.8.0
 google-generativeai==0.3.2
-tokenizers==0.13.3
-transformers==4.29.2
-torch==2.8.0
+transformers==4.25.1
+torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu
+sentencepiece==0.1.99
+protobuf==3.20.3
