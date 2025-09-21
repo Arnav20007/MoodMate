@@ -6,7 +6,7 @@ python-dotenv==1.0.0
 requests==2.31.0
 Werkzeug==2.3.7
 transformers==4.30.0
-torch==2.8.1
+torch==2.8.0
  
  
 Werkzeug==2.3.7
