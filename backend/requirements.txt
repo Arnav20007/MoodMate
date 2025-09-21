@@ -1,11 +1,18 @@
+# Core Flask backend
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-CORS==4.0.0
 python-dotenv==1.0.0
 requests==2.31.0
 Werkzeug==2.3.7
+
+# Torch for Gemini
 torch==2.8.0
+
+# Database & Auth
 SQLAlchemy==2.0.23
 bcrypt==4.0.1
 PyJWT==2.8.0
+
+# Gemini API client
 google-generativeai==0.3.2
