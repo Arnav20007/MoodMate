@@ -1,7 +1,9 @@
+# Ensure pip can handle all prebuilt wheels
 pip>=25.2
 setuptools>=68.0.0
 wheel
 
+# Core backend
 Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-CORS==4.0.0
@@ -11,6 +13,8 @@ Werkzeug==2.3.7
 SQLAlchemy==2.0.23
 bcrypt==4.0.1
 PyJWT==2.8.0
+
+# AI / NLP packages (prebuilt wheels only)
 google-generativeai==0.3.2
 tokenizers==0.12.1
 transformers==4.25.1
