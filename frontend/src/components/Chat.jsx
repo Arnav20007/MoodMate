@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Chat.css';
 
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = 'http://localhost:5000';  // Changed from 127.0.0.1
 
 function Chat({ user }) {
     const [messages, setMessages] = useState([]);
@@ -18,6 +18,13 @@ function Chat({ user }) {
                 text: `Hello ${user.username}! I'm MoodMate. How can I help you today?`,
                 sender: 'bot'
             }]);
+        } else {
+            // Fallback welcome
+            setMessages([{
+                id: Date.now(),
+                text: `Hello! I'm MoodMate. How can I help you today?`,
+                sender: 'bot'
+            }]);
         }
     }, [user]);
 
@@ -29,35 +36,19 @@ function Chat({ user }) {
             document.body.classList.remove('dark-mode');
         }
         
-        // Save preference to localStorage
         localStorage.setItem('darkMode', darkMode);
     }, [darkMode]);
 
-    // Load dark mode preference on component mount
+    // Load dark mode preference
     useEffect(() => {
         const savedDarkMode = localStorage.getItem('darkMode') === 'true';
         setDarkMode(savedDarkMode);
     }, []);
 
-    // Automatically scroll to the latest message
+    // Auto scroll
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
-
-    // Save messages to localStorage
-    useEffect(() => {
-        if (messages.length > 0) {
-            localStorage.setItem('chatMessages', JSON.stringify(messages));
-        }
-    }, [messages]);
-
-    // Load messages from localStorage
-    useEffect(() => {
-        const savedMessages = localStorage.getItem('chatMessages');
-        if (savedMessages) {
-            setMessages(JSON.parse(savedMessages));
-        }
-    }, []);
 
     const sendMessage = async () => {
         if (!input.trim()) return;
@@ -72,21 +63,33 @@ function Chat({ user }) {
         setIsTyping(true);
 
         try {
+            console.log("Sending message to backend...");
+            
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ message: input })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    message: input,
+                    user_id: user?.id || 1,  // ✅ REQUIRED
+                    session_id: 'web_chat_' + Date.now()  // ✅ REQUIRED
+                })
             });
 
+            console.log("Response status:", response.status);
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
+            console.log("Backend response:", data);
+            
             const botMessage = { 
                 id: Date.now() + 1, 
-                text: data.reply, 
+                text: data.reply || "I'm here for you.", 
                 sender: 'bot'
             };
             setMessages(prev => [...prev, botMessage]);
@@ -95,7 +98,7 @@ function Chat({ user }) {
             console.error("Chat error:", error);
             const errorMsg = { 
                 id: Date.now() + 1, 
-                text: "Sorry, I couldn't process your request. Please try again.", 
+                text: "I'm having trouble connecting. Please check if the backend server is running.", 
                 sender: 'bot'
             };
             setMessages(prev => [...prev, errorMsg]);
@@ -114,10 +117,23 @@ function Chat({ user }) {
         if (window.confirm("Are you sure you want to clear all messages?")) {
             setMessages([{
                 id: Date.now(),
-                text: `Chat cleared. How can I help you today, ${user.username}?`,
+                text: `Chat cleared. How can I help you today, ${user?.username || 'friend'}?`,
                 sender: 'bot'
             }]);
             localStorage.removeItem('chatMessages');
+        }
+    };
+
+    // Test backend connection
+    const testBackend = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/test`);
+            const data = await response.json();
+            console.log("Backend test:", data);
+            alert(`Backend test: ${data.message}`);
+        } catch (error) {
+            console.error("Backend test failed:", error);
+            alert("Backend connection failed!");
         }
     };
 
@@ -130,6 +146,13 @@ function Chat({ user }) {
                     <p>Always here to listen</p>
                 </div>
                 <div className="chat-header-actions">
+                    <button 
+                        className="test-backend-btn"
+                        onClick={testBackend}
+                        title="Test backend connection"
+                    >
+                        🔧
+                    </button>
                     <button 
                         className="clear-chat-btn"
                         onClick={clearChat}

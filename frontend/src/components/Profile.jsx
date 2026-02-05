@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
 import './Profile.css';
+import './Premium.css'; // Import Premium CSS
 
-// REPLACE THESE IMPORTS WITH YOUR ACTUAL COMPONENTS:
-// import Breathing from './Breathing';
-// import Games from './Games';
-// import Journal from './Journal';
-// import Sleep from './Sleep';
-// import Shop from './Shop';
-// import Report from './Report';
-// import AICoach from './AICoach';
-// import Meditation from './Meditation';
- 
+// Import your components
 import Breathing from './BreathingExercise';
 import Games from './GamesModal';
 import Journal from './JournalModal';
@@ -19,6 +11,7 @@ import Shop from './ShopModal';
 import Report from './Report';
 import AICoach from './AICoach';
 import Meditation from './Meditation';
+import PremiumPlans from './PremiumPlans'; // Import PremiumPlans component
 
 function Profile({ 
   user, 
@@ -27,82 +20,122 @@ function Profile({
   onLogout
 }) {
     const [activeSection, setActiveSection] = useState('overview');
-    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [showPremiumPopup, setShowPremiumPopup] = useState(false);
+    const [premiumFeature, setPremiumFeature] = useState('');
 
-    // ✅ The complete 6-plan structure
-    const plans = [
-        { 
-            id: 'weekly', 
-            name: 'Starter Pass', 
-            price: '₹99', 
-            period: '/week', 
-            description: 'A low-risk trial of all premium features.', 
-            features: ['Full access for 7 days', 'Mindful Games', 'AI Coach'], 
-            highlight: false 
-        },
-        { 
-            id: 'monthly', 
-            name: 'Monthly Plus', 
-            price: '₹299', 
-            period: '/month', 
-            description: 'Full access with monthly flexibility.', 
-            features: ['Everything in Starter', 'Cancel Anytime', 'Priority Support'], 
-            highlight: false 
-        },
-        { 
-            id: 'quarterly',
-            name: 'Quarterly Pro',
-            price: '₹749',
-            period: '/3 months',
-            description: 'A balanced option for committed users.',
-            features: ['Everything in Monthly', 'Save over 15%', 'Extended feature trials'],
-            highlight: false,
-            savings: 'Save 16%'
-        },
-        { 
-            id: 'annual', 
-            name: 'Annual Premium', 
-            price: '₹1,999', 
-            period: '/year', 
-            description: 'Our best value for dedicated users.', 
-            features: ['Everything in Quarterly', 'Exclusive Themes & Avatars', 'Early Access'], 
-            highlight: true, 
-            savings: 'Save 44%' 
-        },
-        { 
-            id: 'student', 
-            name: 'Student Annual', 
-            price: '₹999', 
-            period: '/year', 
-            description: 'Accessible wellness for students.', 
-            features: ['All Annual Premium features', 'Requires Student Verification'], 
-            highlight: false, 
-            savings: '50% Off' 
-        },
-        { 
-            id: 'lifetime', 
-            name: 'Elite Lifetime', 
-            price: '₹4,999', 
-            period: 'one-time', 
-            description: 'Pay once, own forever.', 
-            features: ['Everything in Annual', 'Exclusive Founder Badge'], 
-            highlight: false 
-        },
-    ];
-
-    const handleSubscribe = async (planId) => {
-        try {
-            // In a real app, you would call your API here
-            console.log(`Subscribing to plan: ${planId}`);
-            onUpdateUser({ ...user, plan: planId, is_premium: 1 });
-            alert(`🎉 Welcome to ${plans.find(p => p.id === planId).name}!`);
-        } catch (error) {
-            alert("Subscription failed. Please try again.");
+    // Enhanced handler for tool navigation with premium check
+    const handleToolNavigation = (tool, isPremium = false) => {
+        if (isPremium && !user.is_premium) {
+            setPremiumFeature(tool);
+            setShowPremiumPopup(true);
+            return;
         }
+        setActiveSection(tool);
+    };
+
+    // Close premium popup
+    const handleClosePremiumPopup = () => {
+        setShowPremiumPopup(false);
+        setPremiumFeature('');
+    };
+
+    // Handle upgrade from popup
+    const handleUpgradeFromPopup = () => {
+        setShowPremiumPopup(false);
+        setActiveSection('premium');
+    };
+
+    // Function to render tool components with proper props
+    const renderToolComponent = (tool) => {
+        const commonProps = {
+            user: user,
+            onUpdateUser: onUpdateUser,
+            onClose: () => setActiveSection('overview')
+        };
+
+        switch(tool) {
+            case 'breathing':
+                return <Breathing {...commonProps} />;
+            case 'games':
+                return <Games {...commonProps} />;
+            case 'journal':
+                return <Journal {...commonProps} />;
+            case 'sleep':
+                return <Sleep {...commonProps} />;
+            case 'shop':
+                return <Shop {...commonProps} />;
+            case 'report':
+                return <Report {...commonProps} />;
+            case 'aiCoach':
+                return <AICoach {...commonProps} />;
+            case 'meditation':
+                return <Meditation {...commonProps} />;
+            default:
+                return null;
+        }
+    };
+
+    // Get feature name for premium popup
+    const getFeatureName = (feature) => {
+        const featureNames = {
+            'aiCoach': 'AI Coach',
+            'sleep': 'Sleep Companion',
+            'report': 'Advanced Reports',
+            'meditation': 'Premium Meditation'
+        };
+        return featureNames[feature] || 'Premium Feature';
     };
 
     return (
         <div className="profile-container-laptop">
+            {/* Premium Feature Popup */}
+            {showPremiumPopup && (
+                <div className="premium-popup-overlay">
+                    <div className="premium-popup-container">
+                        <div className="premium-popup-header">
+                            <div className="premium-popup-icon">💎</div>
+                            <h3>Premium Feature</h3>
+                            <button className="premium-popup-close" onClick={handleClosePremiumPopup}>×</button>
+                        </div>
+                        <div className="premium-popup-content">
+                            <div className="premium-popup-image">
+                                <div className="premium-feature-icon">
+                                    {premiumFeature === 'aiCoach' && '🤖'}
+                                    {premiumFeature === 'sleep' && '🌙'}
+                                    {premiumFeature === 'report' && '📊'}
+                                    {premiumFeature === 'meditation' && '🧘'}
+                                </div>
+                            </div>
+                            <h2>Unlock {getFeatureName(premiumFeature)}</h2>
+                            <p>Access exclusive {getFeatureName(premiumFeature).toLowerCase()} features and enhance your wellness journey with Premium membership.</p>
+                            
+                            <div className="premium-popup-features">
+                                <div className="premium-feature-item">
+                                    <span className="feature-check">✓</span>
+                                    <span>Full access to {getFeatureName(premiumFeature)}</span>
+                                </div>
+                                <div className="premium-feature-item">
+                                    <span className="feature-check">✓</span>
+                                    <span>Advanced analytics and insights</span>
+                                </div>
+                                <div className="premium-feature-item">
+                                    <span className="feature-check">✓</span>
+                                    <span>Priority support</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="premium-popup-actions">
+                            <button className="premium-popup-btn secondary" onClick={handleClosePremiumPopup}>
+                                Maybe Later
+                            </button>
+                            <button className="premium-popup-btn primary" onClick={handleUpgradeFromPopup}>
+                                Upgrade Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Sidebar Navigation */}
             <div className="profile-sidebar">
                 <div className="user-info-sidebar">
@@ -177,28 +210,28 @@ function Profile({
                                 <div className="stat-icon">📅</div>
                                 <div className="stat-content">
                                     <h3>Member Since</h3>
-                                    <p>{new Date().toLocaleDateString()}</p>
+                                    <p>{new Date(user.createdAt || Date.now()).toLocaleDateString()}</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon">💬</div>
                                 <div className="stat-content">
                                     <h3>Chat Sessions</h3>
-                                    <p>47 completed</p>
+                                    <p>{user.chatSessions || 47} completed</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon">📝</div>
                                 <div className="stat-content">
                                     <h3>Journal Entries</h3>
-                                    <p>12 entries</p>
+                                    <p>{user.journalEntries || 12} entries</p>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="stat-icon">🎯</div>
                                 <div className="stat-content">
                                     <h3>Goals Achieved</h3>
-                                    <p>8 of 12</p>
+                                    <p>{user.goalsAchieved || 8} of {user.totalGoals || 12}</p>
                                 </div>
                             </div>
                         </div>
@@ -206,35 +239,35 @@ function Profile({
                         <div className="quick-actions">
                             <h2>Quick Actions</h2>
                             <div className="actions-grid">
-                                <button className="action-btn" onClick={() => setActiveSection('report')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('report', true)}>
                                     <span className="action-icon">📊</span>
                                     <span>Reports</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('aiCoach')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('aiCoach', true)}>
                                     <span className="action-icon">🤖</span>
                                     <span>AI Coach</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('games')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('games')}>
                                     <span className="action-icon">🎮</span>
                                     <span>Games</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('breathing')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('breathing')}>
                                     <span className="action-icon">🌬️</span>
                                     <span>Breathe</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('shop')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('shop')}>
                                     <span className="action-icon">🛒</span>
                                     <span>Shop</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('meditation')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('meditation', true)}>
                                     <span className="action-icon">🧘</span>
                                     <span>Meditation</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('sleep')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('sleep', true)}>
                                     <span className="action-icon">🌙</span>
                                     <span>Sleep</span>
                                 </button>
-                                <button className="action-btn" onClick={() => setActiveSection('journal')}>
+                                <button className="action-btn" onClick={() => handleToolNavigation('journal')}>
                                     <span className="action-icon">📔</span>
                                     <span>Journal</span>
                                 </button>
@@ -249,7 +282,7 @@ function Profile({
                         <p className="section-description">Access tools to support your mental wellness journey</p>
                         
                         <div className="tools-grid">
-                            <div className="tool-card" onClick={() => setActiveSection('breathing')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('breathing')}>
                                 <div className="tool-icon">🌬️</div>
                                 <div className="tool-content">
                                     <h3>Breathing Exercises</h3>
@@ -258,7 +291,7 @@ function Profile({
                                 <div className="tool-badge free">Free</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('games')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('games')}>
                                 <div className="tool-icon">🎮</div>
                                 <div className="tool-content">
                                     <h3>Mindful Games</h3>
@@ -267,7 +300,7 @@ function Profile({
                                 <div className="tool-badge free">Free</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('aiCoach')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('aiCoach', true)}>
                                 <div className="tool-icon">🤖</div>
                                 <div className="tool-content">
                                     <h3>AI Coach</h3>
@@ -276,7 +309,7 @@ function Profile({
                                 <div className="tool-badge premium">{user.is_premium ? 'Active' : 'Premium'}</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('sleep')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('sleep', true)}>
                                 <div className="tool-icon">🌙</div>
                                 <div className="tool-content">
                                     <h3>Sleep Companion</h3>
@@ -285,7 +318,7 @@ function Profile({
                                 <div className="tool-badge premium">{user.is_premium ? 'Active' : 'Premium'}</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('report')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('report', true)}>
                                 <div className="tool-icon">📊</div>
                                 <div className="tool-content">
                                     <h3>Mood Reports</h3>
@@ -294,7 +327,7 @@ function Profile({
                                 <div className="tool-badge">{user.is_premium ? 'Advanced' : 'Basic'}</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('shop')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('shop')}>
                                 <div className="tool-icon">🛒</div>
                                 <div className="tool-content">
                                     <h3>Shop</h3>
@@ -303,16 +336,16 @@ function Profile({
                                 <div className="tool-badge free">Free</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('meditation')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('meditation', true)}>
                                 <div className="tool-icon">🧘</div>
                                 <div className="tool-content">
                                     <h3>Meditation</h3>
                                     <p>Guided meditation sessions</p>
                                 </div>
-                                <div className="tool-badge free">Free</div>
+                                <div className="tool-badge premium">{user.is_premium ? 'Active' : 'Premium'}</div>
                             </div>
                             
-                            <div className="tool-card" onClick={() => setActiveSection('journal')}>
+                            <div className="tool-card" onClick={() => handleToolNavigation('journal')}>
                                 <div className="tool-icon">📔</div>
                                 <div className="tool-content">
                                     <h3>Journal</h3>
@@ -326,119 +359,18 @@ function Profile({
 
                 {activeSection === 'premium' && (
                     <div className="content-section">
-                        {user.is_premium ? (
-                            <div className="premium-active">
-                                <div className="premium-header">
-                                    <div className="premium-icon">🌟</div>
-                                    <h2>Premium Membership Active</h2>
-                                </div>
-                                <p className="premium-description">You're enjoying all exclusive features</p>
-                                
-                                <div className="premium-benefits">
-                                    <div className="benefit">
-                                        <span className="benefit-icon">✅</span>
-                                        <div>
-                                            <h4>Unlimited AI Coach</h4>
-                                            <p>24/7 access to personalized guidance</p>
-                                        </div>
-                                    </div>
-                                    <div className="benefit">
-                                        <span className="benefit-icon">✅</span>
-                                        <div>
-                                            <h4>Advanced Analytics</h4>
-                                            <p>Detailed mood insights and patterns</p>
-                                        </div>
-                                    </div>
-                                    <div className="benefit">
-                                        <span className="benefit-icon">✅</span>
-                                        <div>
-                                            <h4>Premium Content</h4>
-                                            <p>Exclusive meditation and sleep content</p>
-                                        </div>
-                                    </div>
-                                    <div className="benefit">
-                                        <span className="benefit-icon">✅</span>
-                                        <div>
-                                            <h4>Ad-Free Experience</h4>
-                                            <p>No interruptions in your journey</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="premium-upgrade">
-                                <div className="upgrade-header">
-                                    <div className="upgrade-icon">💎</div>
-                                    <h2>Upgrade to Premium</h2>
-                                </div>
-                                <p className="upgrade-description">Unlock the full potential of your wellness journey</p>
-                                
-                                <div className="pricing-cards">
-                                    {plans.map((plan) => (
-                                        <div key={plan.id} className={`pricing-card ${plan.highlight ? 'recommended' : ''}`}>
-                                            {plan.highlight && <div className="recommended-badge">BEST VALUE</div>}
-                                            <h3>{plan.name}</h3>
-                                            <div className="price">{plan.price}<span>{plan.period}</span></div>
-                                            {plan.savings && <div className="savings">{plan.savings}</div>}
-                                            <p>{plan.description}</p>
-                                            <ul>
-                                                {plan.features.map((feature, idx) => (
-                                                    <li key={idx}>✓ {feature}</li>
-                                                ))}
-                                            </ul>
-                                            <button 
-                                                className={`upgrade-btn ${plan.highlight ? 'primary' : ''}`}
-                                                onClick={() => handleSubscribe(plan.id)}
-                                            >
-                                                Choose Plan
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                                
-                                <div className="feature-comparison">
-                                    <h3>What's Included in Premium</h3>
-                                    <div className="features-grid">
-                                        <div className="feature-item">
-                                            <span>🤖</span>
-                                            <span>Unlimited AI Coach Access</span>
-                                        </div>
-                                        <div className="feature-item">
-                                            <span>📊</span>
-                                            <span>Advanced Analytics & Reports</span>
-                                        </div>
-                                        <div className="feature-item">
-                                            <span>🎵</span>
-                                            <span>Premium Meditation Content</span>
-                                        </div>
-                                        <div className="feature-item">
-                                            <span>🌙</span>
-                                            <span>Sleep Stories & Companion</span>
-                                        </div>
-                                        <div className="feature-item">
-                                            <span>🚫</span>
-                                            <span>Ad-Free Experience</span>
-                                        </div>
-                                        <div className="feature-item">
-                                            <span>💬</span>
-                                            <span>Priority Support</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                        <PremiumPlans 
+                            user={user}
+                            onUpdateUser={onUpdateUser}
+                            onClose={() => setActiveSection('overview')}
+                        />
                     </div>
                 )}
 
-                {/* Tool Components */}
-                {activeSection === 'breathing' && <Breathing />}
-                {activeSection === 'games' && <Games />}
-                {activeSection === 'journal' && <Journal />}
-                {activeSection === 'sleep' && <Sleep />}
-                {activeSection === 'shop' && <Shop />}
-                {activeSection === 'report' && <Report />}
-                {activeSection === 'aiCoach' && <AICoach />}
-                {activeSection === 'meditation' && <Meditation />}
+                {/* Render Tool Components */}
+                {['breathing', 'games', 'journal', 'sleep', 'shop', 'report', 'aiCoach', 'meditation'].includes(activeSection) && 
+                    renderToolComponent(activeSection)
+                }
             </div>
         </div>
     );

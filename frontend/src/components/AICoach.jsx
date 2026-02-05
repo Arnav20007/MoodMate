@@ -65,6 +65,27 @@ function AICoach({ user }) {
   const [activeTimeTab, setActiveTimeTab] = useState('Morning');
   const [performanceData, setPerformanceData] = useState(performanceMetrics);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  useEffect(() => {
+  const fetchPlan = async () => {
+    try {
+      const res = await fetch("http://127.0.0.1:5000/api/ai-coach/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goals: userGoals })
+      });
+      const data = await res.json();
+      setDailyPlan(data.plan);
+      setAiInsight(data.insight);
+      setRecommendations(data.recommendations);
+      setPerformanceData(data.performanceMetrics);
+      setCoachMessage(data.coachMessage);
+    } catch (err) {
+      console.error("Error fetching AI Coach data:", err);
+    }
+  };
+  fetchPlan();
+}, [userGoals]);
+
 
   // Generate initial plan and insights
   useEffect(() => {
