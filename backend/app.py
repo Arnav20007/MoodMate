@@ -1019,12 +1019,12 @@ def buy_premium(user_id):
     conn = sqlite3.connect('moodmate.db')
     conn.row_factory = sqlite3.Row
     try:
-        # First ensure premium_plan column exists
         try:
             conn.execute("ALTER TABLE users ADD COLUMN premium_plan TEXT DEFAULT 'free'")
             conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already exists
+        except sqlite3.OperationalError as op_e:
+            if "duplicate column name" not in str(op_e).lower():
+                return jsonify({"success": False, "error": f"ALTER TABLE failed: {str(op_e)}"}), 500
 
         # Do the upgrade
         conn.execute("UPDATE users SET premium_plan = ? WHERE id = ?", (plan, user_id))
