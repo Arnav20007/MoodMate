@@ -656,7 +656,7 @@ function Profile({
                     <div className="content-section">
                         <PremiumPlans 
                             user={user}
-                            onUpdateUser={onUpdateUser}
+                            onSubscribe={(plan) => window.location.reload()}
                             onClose={() => setActiveSection('overview')}
                         />
                     </div>
