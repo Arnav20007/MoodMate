@@ -20,10 +20,10 @@ def get_db():
 def signup():
     data = request.json or {}
 
-    username = data.get("username", "").strip()
-    email = data.get("email", "").strip().lower()
-    phone = data.get("phone", "").strip()
-    password = data.get("password", "")
+    username = str(data.get("username") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
+    phone = str(data.get("phone") or "").strip()
+    password = str(data.get("password") or "")
 
     if not username or not email or not phone or not password:
         return jsonify({
