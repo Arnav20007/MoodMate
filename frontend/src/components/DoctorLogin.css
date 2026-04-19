@@ -7,10 +7,13 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 .dl-page {
+  height: 100%;
   min-height: 100vh;
   display: flex;
   font-family: 'Inter', sans-serif;
   background: #f0f4ff;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ── Left panel — branding ── */
