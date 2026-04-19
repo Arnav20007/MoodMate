@@ -33,7 +33,7 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
 
 # ========== CORS Setup ==========
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://moodmate-frontend.onrender.com", "*"])
 
 app.register_blueprint(auth_bp, url_prefix="/")
  
@@ -244,41 +244,41 @@ MOOD_EMOJIS = {
 }
 
 MOOD_PHRASES = {
-    "happy": "खुश रहो हमेशा — आपकी मुस्कान की वजह कुछ है।",
-    "sad": "यह भी बीत जाएगा — थोड़ी सी उम्मीद रखो।",
-    "angry": "गहरे साँस लो — हर ग़ुस्सा कुछ सिखा कर जाता है।",
-    "anxious": "शांत रहना सीखो, सब धीरे-धीरे ठीक होगा।",
-    "lonely": "तन्हाई में भी खुद से दोस्ती करना सीखो।",
-    "nostalgic": "यादें हैं — उन्हें मुस्कान से सजीव रखो।",
-    "excited": "उत्साह बनाये रखो — छोटी जीत बड़ी बनती है。",
-    "calm": "शांति में ही सच्चा आराम मिलता है。",
-    "confused": "सवालों का जवाब वक्त के साथ आता है。",
-    "hopeful": "आशा रखो — यह दिशा बदल देती है。",
-    "grateful": "छोटी कृतज्ञताएँ बड़ा फर्क लाती हैं。",
-    "frustrated": "रुकावटें नए रास्ते दिखाती हैं。",
-    "motivated": "आज एक छोटा कदम, कल बड़ी मंज़िल।",
-    "tired": "आराम लो — फिर से शुरू करना आसान होगा。",
-    "bored": "नया कुछ सीखो — जिज्ञासा मजेदार है。",
-    "content": "संतोष में असली सुख होता है。",
-    "worried": "समाधान की तरफ एक छोटा कदम उठाओ。",
-    "proud": "छोटे कदमों पर गर्व करो — वे मायने रखते हैं।",
-    "guilty": "गलतियों से सीखकर आगे बढ़ो।",
-    "relaxed": "आराम लो और धीरे-धीरे आगे बढ़ो。",
-    "energetic": "ऊर्जा बनाये रखो — दुनिया तुम्हारी है!",
-    "peaceful": "शांति में खो जाओ — सब कुछ ठीक है。"
+    "happy": "Khush raho hamesha - aapki muskaan ki wajah kuch hai.",
+    "sad": "Yeh bhi beet jayega - thodi si ummeed rakho.",
+    "angry": "Gehre saans lo - har gussa kuch sikha kar jaata hai.",
+    "anxious": "Shaant rehna seekho, sab dheere-dheere theek hoga.",
+    "lonely": "Tanhai mein bhi khud se dosti karna seekho.",
+    "nostalgic": "Yaadein hain - unhe muskaan se sajeev rakho.",
+    "excited": "Utsaah banaye rakho - choti jeet badi banti hai.",
+    "calm": "Shaanti mein hi sachcha aaram milta hai.",
+    "confused": "Sawaalon ka jawab waqt ke saath aata hai.",
+    "hopeful": "Aasha rakho - yeh disha badal deti hai.",
+    "grateful": "Choti kritagyataein bada fark laati hain.",
+    "frustrated": "Rukawatein naye raaste dikhaati hain.",
+    "motivated": "Aaj ek chota qadam, kal badi manzil.",
+    "tired": "Aaram lo - phir se shuru karna aasaan hoga.",
+    "bored": "Naya kuch seekho - jigyasa mazedar hai.",
+    "content": "Santosh mein asli sukh hota hai.",
+    "worried": "Samaadhaan ki taraf ek chota qadam uthao.",
+    "proud": "Chote qadmon par garv karo - ve mayne rakhte hain.",
+    "guilty": "Galtiyon se seekhkar aage badho.",
+    "relaxed": "Aaram lo aur dheere-dheere aage badho.",
+    "energetic": "Urja banaye rakho - duniya tumhari hai!",
+    "peaceful": "Shaanti mein kho jao - sab kuch theek hai."
 }
 
 MOOD_CHALLENGES = [
-    "आज 5 मिनट ध्यान करो।", 
-    "किसी दोस्त को कॉल करो।",
-    "अपनी पसंदीदा किताब पढ़ो。", 
-    "10 मिनट टहलो。",
-    "एक अच्छी बात लिखो。", 
-    "परिवार के साथ समय बिताओ。",
-    "खुद को तारीफ दो。",
-    "तीन चीजों के लिए आभारी रहो。",
-    "एक नया गाना सीखो。",
-    "प्रकृति में समय बिताओ。"
+    "Aaj 5 minute dhyaan karo.",
+    "Kisi dost ko call karo.",
+    "Apni pasandeeda kitaab padho.",
+    "10 minute tahlo.",
+    "Ek achhi baat likho.",
+    "Parivaar ke saath samay bitao.",
+    "Khud ko taarif do.",
+    "Teen cheezon ke liye aabhari raho.",
+    "Ek naya gaana seekho.",
+    "Prakriti mein samay bitao."
 ]
 
 # ========== Helper Functions ==========
