@@ -208,7 +208,7 @@ function Chat({ user }) {
             const data = await response.json();
             const botMessage = {
                 id: Date.now() + 1,
-                text: data.reply || "Main yahan hoon.",
+                text: data.reply || "I'm here with you.",
                 sender: 'bot',
                 audioUrl: data.audioUrl
             };
@@ -218,7 +218,7 @@ function Chat({ user }) {
             console.error("Chat error:", error);
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
-                text: "Connection issue. Backend se baat nahi ho paa rahi. Please check if it's running.",
+                text: "Connection issue. Could not reach the backend. Please check if it's running.",
                 sender: 'bot'
             }]);
         } finally {
@@ -242,7 +242,7 @@ function Chat({ user }) {
     const clearChat = () => setShowClearModal(true);
 
     const confirmClearChat = () => {
-        const newMsg = { id: Date.now(), text: `Naya shuruvaat. Main yahan hoon. \u{1F331}`, sender: 'bot' };
+        const newMsg = { id: Date.now(), text: `Fresh start. I'm here with you. 🌱`, sender: 'bot' };
         setMessages([newMsg]);
         try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
         setShowClearModal(false);
@@ -266,7 +266,7 @@ function Chat({ user }) {
                 </div>
                 <div className="chat-header-info">
                     <h2>MoodMate</h2>
-                    <p style={{ fontSize: '14px', marginTop: '3px', color: '#64748b', fontWeight: '500' }}>Main yahan hoon, tumhare saath. 💙</p>
+                    <p style={{ fontSize: '13px', marginTop: '3px', color: '#64748b', fontWeight: '500' }}>Your safe space to talk 💙</p>
                 </div>
                 <div className="chat-header-actions">
                     <button className="header-icon-btn" onClick={clearChat} title="Clear conversation">

@@ -311,26 +311,9 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         ))}
       </nav>
 
-      {/* Floating Quick-Breathe Pill */}
-      <motion.button
-        className="floating-breathe-btn"
-        whileHover={{ scale: 1.12 }}
-        whileTap={{ scale: 0.92 }}
-        onClick={() => handleTabClick('ai-coach')}
-        title="Quick Breathing Exercise"
-        aria-label="Quick Breathing Exercise"
-      >
-        <span role="img" aria-label="breathe">🌬️</span>
-      </motion.button>
 
-      {/* Doctor Portal Link */}
-      <button
-        className="doctor-portal-link"
-        onClick={() => setShowDoctorLogin(true)}
-        title="Healthcare Professional Portal"
-      >
-        🩺 Healthcare Professional Sign In
-      </button>
+
+
 
       {/* SOS Modal */}
       <AnimatePresence>
