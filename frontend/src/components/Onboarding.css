@@ -94,3 +94,10 @@
 .onboarding-btn:active {
   transform: translateY(0) scale(0.98);
 }
+
+@media (max-width: 768px) {
+  .onboarding-card {
+    padding: 40px 20px;
+    margin: 0 15px;
+  }
+}

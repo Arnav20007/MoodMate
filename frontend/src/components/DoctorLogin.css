@@ -270,8 +270,9 @@
 
 @media (max-width: 768px) {
   .dl-page { flex-direction: column; }
-  .dl-left { width: 100%; padding: 28px; }
+  .dl-left { width: 100%; padding: 28px 20px; flex: none; min-height: 25vh; }
   .dl-headline h1 { font-size: 26px; }
   .dl-features { display: none; }
-  .dl-right { padding: 24px; }
+  .dl-right { padding: 16px; align-items: flex-start; }
+  .dl-form-card { padding: 24px 20px; width: 100%; }
 }
