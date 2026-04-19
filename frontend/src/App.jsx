@@ -271,19 +271,19 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
       {/* ── Main Content with Swipe Support ── */}
       <main
         className="app-main"
-        style={{ position: 'relative', overflow: 'hidden' }}
+        style={{ position: 'relative', overflow: 'hidden', display: 'flex' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence mode="wait" custom={swipeDir}>
+        <AnimatePresence initial={false} custom={swipeDir}>
           <motion.div
             key={activeTab}
             custom={swipeDir}
-            initial={{ opacity: 0, x: swipeDir * 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: swipeDir * -40 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            style={{ width: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            initial={(custom) => ({ opacity: 0.8, x: custom * 100 + '%', position: 'absolute', top: 0, left: 0 })}
+            animate={{ opacity: 1, x: '0%', position: 'absolute', top: 0, left: 0 }}
+            exit={(custom) => ({ opacity: 0.8, x: custom * -100 + '%', position: 'absolute', top: 0, left: 0 })}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            style={{ width: '100%', height: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           >
             {activeTab === 'chat'      && <Chat user={user} />}
             {activeTab === 'ai-coach'  && <AICoach user={user} />}

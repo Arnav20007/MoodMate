@@ -149,8 +149,8 @@
 /* ── Badges ── */
 .profile-ig-badges {
   display: flex;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 16px 16px;
   overflow-x: auto;
   background: white;
   border-bottom: 1px solid #f1f5f9;

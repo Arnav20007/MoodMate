@@ -253,21 +253,8 @@ function Chat({ user }) {
     return (
         <div className={`chat-container ${darkMode ? 'dark-mode' : ''}`}>
 
-            <div className="chat-header">
-                {/* Animated pulse avatar */}
-                <div style={{ position: 'relative', marginRight: '1rem', flexShrink: 0 }}>
-                  <div style={{
-                    position: 'absolute', inset: '-4px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899)',
-                    animation: 'avatarPulse 2.5s ease-in-out infinite',
-                    zIndex: 0,
-                  }} />
-                  <div className="chat-header-avatar" style={{ position: 'relative', zIndex: 1 }}>M</div>
-                </div>
-                <div className="chat-header-info">
-                    <h2>MoodMate</h2>
-                    <p style={{ fontSize: '13px', marginTop: '3px', color: '#64748b', fontWeight: '500' }}>Your safe space to talk 💙</p>
-                </div>
+            <div className="chat-header" style={{ padding: '8px 16px', borderBottom: 'none', background: 'transparent' }}>
+                <div style={{ flex: 1 }}></div>
                 <div className="chat-header-actions">
                     <button className="header-icon-btn" onClick={clearChat} title="Clear conversation">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -315,15 +302,14 @@ function Chat({ user }) {
             )}
 
             <div className="chat-box">
-                {/* Warm safety card */}
                 <div style={{
-                    background: 'linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.04))',
-                    color: '#475569', padding: '10px 18px', fontSize: '12.5px',
-                    borderBottom: '1px solid rgba(99,102,241,0.1)',
-                    display: 'flex', alignItems: 'center', gap: '10px', lineHeight: '1.4'
+                    background: 'transparent',
+                    color: '#64748b', padding: '8px 16px', fontSize: '11px',
+                    textAlign: 'center', marginBottom: '8px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
                 }}>
-                    <span style={{ fontSize: '16px', flexShrink: 0 }}>💙</span>
-                    <span>This is a safe space. MoodMate is an AI companion, not a therapist. <strong style={{ color: '#6366f1' }}>Crisis? iCall: 9152987821</strong></span>
+                    <span style={{ fontSize: '12px' }}>🔒</span>
+                    <span>AI companion, not a therapist. <strong style={{ color: '#6366f1' }}>Crisis? iCall: 9152987821</strong></span>
                 </div>
                 <div className="chat-messages-container">
                     {messages.map((msg) => (

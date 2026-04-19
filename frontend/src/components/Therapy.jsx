@@ -193,7 +193,7 @@ export default function Therapy({ user }) {
       </div>
 
       {/* Billion-Dollar Feature #5: Algorithmic Therapist Matching (BetterHelp Parity) */}
-      <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', padding: '24px', borderRadius: '24px', margin: '0 20px 24px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #4338ca', boxShadow: '0 10px 30px rgba(49, 46, 129, 0.15)' }}>
+      <div style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)', padding: '24px', borderRadius: '24px', margin: '0 20px 24px', color: 'white', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '20px', justifyContent: 'space-between', border: '1px solid #4338ca', boxShadow: '0 10px 30px rgba(49, 46, 129, 0.15)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <div style={{ fontSize: '32px', background: 'rgba(255,255,255,0.1)', width: '64px', height: '64px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🧠</div>
             <div>
