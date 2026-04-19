@@ -573,7 +573,16 @@ def get_user_status():
         user = cursor.fetchone()
         
         if not user:
-            return jsonify({"status": "error", "message": "User not found"}), 404
+            # Return safe defaults for new users with no data yet
+            return jsonify({
+                "status": "success",
+                "streak": 0,
+                "last_mood": "neutral",
+                "coins": 0,
+                "checked_in_today": False,
+                "total_checkins": 0,
+                "wellness_score": 70
+            })
             
         today = datetime.now().date()
         
@@ -737,7 +746,19 @@ def get_report_data():
         user_row = cursor.fetchone()
         
         if not user_row:
-            return jsonify({"status": "error", "message": "User not found"}), 404
+            # Return empty report for new users instead of 404
+            return jsonify({
+                "status": "success",
+                "user": {"username": "User", "coins": 0, "streak": 0},
+                "mood_data": [],
+                "mood_distribution": {},
+                "total_checkins": 0,
+                "avg_score": 70,
+                "streak": 0,
+                "coins": 0,
+                "top_mood": "neutral",
+                "wellness_trend": "stable"
+            })
             
         # Get mood data from daily checkins (last 30 days)
         thirty_days_ago = (datetime.now() - timedelta(days=30)).date().isoformat()
@@ -997,23 +1018,24 @@ def buy_premium(user_id):
     data = request.json or {}
     plan = data.get('plan', 'annual')
     
+    conn = sqlite3.connect('moodmate.db')
+    conn.row_factory = sqlite3.Row
     try:
-        with get_db() as conn:
-            conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
+        # First ensure premium_plan column exists
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN premium_plan TEXT DEFAULT 'free'")
             conn.commit()
-            
-            # Fetch updated user status
-            user = conn.execute("SELECT id, username, email, phone, role, coins, streak, last_mood_tag as last_mood, premium_plan FROM users WHERE id = ?", (user_id,)).fetchone()
-            if not user:
-                return jsonify({"success": False, "message": "User not found"}), 404
-            
-            # Convert row to dict
-            user_data = dict(user)
-            user_data['is_premium'] = True
-            
-        return jsonify({"success": True, "message": "Upgraded to premium!", "user": user_data})
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Do the upgrade
+        conn.execute("UPDATE users SET premium_plan = ? WHERE id = ?", (plan, user_id))
+        conn.commit()
+        return jsonify({"success": True, "message": f"Upgraded to {plan} premium!", "is_premium": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/test', methods=['GET'])
 def simple_test():
