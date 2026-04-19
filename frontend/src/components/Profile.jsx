@@ -188,7 +188,11 @@ function Profile({
         const commonProps = {
             user: user,
             onUpdateUser: onUpdateUser,
-            onClose: () => setActiveSection('overview')
+            onClose: () => setActiveSection('overview'),
+            onUpgradeClick: () => {
+                setActiveSection('overview');
+                handleToolNavigation(tool, true);
+            }
         };
 
         switch(tool) {
@@ -317,7 +321,11 @@ function Profile({
                         </div>
                     </div>
 
-                    <div className={`premium-status-sidebar ${user.is_premium ? 'premium' : 'basic'}`}>
+                    <div 
+                        className={`premium-status-sidebar ${user.is_premium ? 'premium' : 'basic'}`} 
+                        onClick={() => !user.is_premium && setActiveSection('premium')}
+                        style={{ cursor: user.is_premium ? 'default' : 'pointer' }}
+                    >
                         {user.is_premium ? '🌟 Premium Member' : '💎 Unlock Premium'}
                     </div>
                 </div>

@@ -370,7 +370,18 @@ const Report = ({ user }) => {
                 <div key={f} className="rp-modal-feature">{f}</div>
               ))}
             </div>
-            <button className="rp-modal-upgrade">🌟 Upgrade — ₹99/month</button>
+            <button className="rp-modal-upgrade" onClick={async () => {
+              try {
+                const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com'}/buy_premium/${user.id}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ plan: 'monthly' })
+                });
+                if (response.ok) {
+                  window.location.reload();
+                }
+              } catch(e) { }
+            }}>✨ Upgrade Now - ₹99/month</button>
             <p className="rp-modal-note">7-day free trial · Cancel anytime</p>
           </div>
         </div>

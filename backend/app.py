@@ -979,6 +979,22 @@ def get_therapists():
 
 # [Keep all other routes exactly as you have them]
 
+@app.route('/buy_premium/<int:user_id>', methods=['POST', 'OPTIONS'])
+def buy_premium(user_id):
+    if request.method == 'OPTIONS':
+        return '', 204
+    data = request.json or {}
+    plan = data.get('plan', 'annual')
+    conn = get_db_connection()
+    try:
+        conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
+        conn.commit()
+        return jsonify({"success": True, "message": "Upgraded to premium!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/test', methods=['GET'])
 def simple_test():
     return jsonify({"status": "success", "message": "Server is running"})
