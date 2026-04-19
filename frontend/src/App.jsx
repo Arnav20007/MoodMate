@@ -217,7 +217,10 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
                 >
                   <div className="notif-header">
                     <span>Notifications</span>
-                    <button className="notif-mark-read" onClick={markAllRead}>Mark all read</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button className="notif-mark-read" onClick={markAllRead}>Mark all read</button>
+                      <button className="notif-mark-read" onClick={() => setShowNotifications(false)} style={{ fontSize: '14px', color: '#94a3b8' }}>✕</button>
+                    </div>
                   </div>
                   <div className="notif-list">
                     {notifications.map(n => (

@@ -50,6 +50,7 @@ body, html, #root {
   background-color: var(--app-bg);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
+  overflow: hidden;
 }
 
 .app-main {
@@ -721,8 +722,8 @@ body, html, #root {
 .sos-modal-content {
   background: white;
   width: 100%;
-  max-width: 500px;
-  border-radius: 28px;
+  max-width: 400px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
@@ -765,7 +766,7 @@ body, html, #root {
   color: #475569;
   line-height: 1.6;
   margin-bottom: 24px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .sos-helpline-list {
