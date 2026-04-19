@@ -985,15 +985,24 @@ def buy_premium(user_id):
         return '', 204
     data = request.json or {}
     plan = data.get('plan', 'annual')
-    conn = get_db_connection()
+    
     try:
-        conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
-        conn.commit()
-        return jsonify({"success": True, "message": "Upgraded to premium!"})
+        with get_db() as conn:
+            conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
+            conn.commit()
+            
+            # Fetch updated user status
+            user = conn.execute("SELECT id, username, email, phone, role, coins, streak, last_mood_tag as last_mood, premium_plan FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not user:
+                return jsonify({"success": False, "message": "User not found"}), 404
+            
+            # Convert row to dict
+            user_data = dict(user)
+            user_data['is_premium'] = True
+            
+        return jsonify({"success": True, "message": "Upgraded to premium!", "user": user_data})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        conn.close()
 
 @app.route('/test', methods=['GET'])
 def simple_test():
