@@ -656,7 +656,11 @@ function Profile({
                     <div className="content-section">
                         <PremiumPlans 
                             user={user}
-                            onSubscribe={(plan) => window.location.reload()}
+                            onSubscribe={(plan) => {
+                                const updatedUser = { ...user, is_premium: true, role: 'premium' };
+                                localStorage.setItem('moodmateUser', JSON.stringify(updatedUser));
+                                window.location.reload();
+                            }}
                             onClose={() => setActiveSection('overview')}
                         />
                     </div>

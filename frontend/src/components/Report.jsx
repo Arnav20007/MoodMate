@@ -386,6 +386,8 @@ const Report = ({ user }) => {
                 });
                 const result = await response.json();
                 if (response.ok && result.success) {
+                  const updatedUser = { ...user, is_premium: true, role: 'premium' };
+                  localStorage.setItem('moodmateUser', JSON.stringify(updatedUser));
                   showToast('✨ Premium activated! Reloading...', '#10b981');
                   setTimeout(() => window.location.reload(), 1500);
                 } else {

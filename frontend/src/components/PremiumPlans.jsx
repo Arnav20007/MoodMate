@@ -5,7 +5,9 @@ import './PremiumPlans.css'; // Your existing CSS file will work perfectly
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 const PremiumPlans = ({ user, onSubscribe, onClose }) => {
-  const [selectedPlan, setSelectedPlan] = useState('annual'); // Default to the best value plan
+  const [selectedPlan, setSelectedPlan] = useState('annual');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoMessage, setPromoMessage] = useState(''); // Default to the best value plan
 
   // ✅ The complete 6-plan structure
   const plans = [
@@ -134,6 +136,19 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
     }
   };
 
+  const applyPromoCode = () => {
+    if (promoCode.toUpperCase() === 'BETA100' || promoCode.toUpperCase() === 'FREEPREMIUM') {
+       setPromoMessage('✅ Promo Code Applied! 100% Off.');
+       // Mock the subscription instantly for the user
+       setTimeout(() => {
+           onSubscribe('lifetime');
+           onClose();
+       }, 1000);
+    } else {
+       setPromoMessage('❌ Invalid Promo Code');
+    }
+  };
+
   return (
     <div className="premium-modal-overlay" onClick={onClose}>
       <div className="premium-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -178,6 +193,19 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
         </div>
 
         <div className="plans-actions">
+          <div className="promo-code-section" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="text" 
+                  value={promoCode} 
+                  onChange={(e) => setPromoCode(e.target.value)} 
+                  placeholder="Have a Promo Code?" 
+                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                />
+                <button onClick={applyPromoCode} style={{ padding: '10px 16px', borderRadius: '8px', background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Apply</button>
+            </div>
+            {promoMessage && <span style={{ fontSize: '13px', color: promoMessage.includes('✅') ? '#10b981' : '#f43f5e' }}>{promoMessage}</span>}
+          </div>
           <button 
             className="subscribe-btn"
             disabled={!selectedPlan}
