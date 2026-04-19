@@ -115,40 +115,33 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
     fetchUserStatus();
   }, [user?.id]);
 
-  // ── Swipe Navigation ──
-  const touchStartX = useRef(null);
-  const touchStartY = useRef(null);
+  // ── Swipe Navigation (Native Scroll-Snap) ──
+  const scrollContainerRef = useRef(null);
+  const scrollTimeout = useRef(null);
 
-  const handleTouchStart = (e) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    // Only register horizontal swipes (not scrolling)
-    if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return;
-
-    const currentIndex = TAB_IDS.indexOf(activeTab);
-    if (dx < 0 && currentIndex < TAB_IDS.length - 1) {
-      // Swipe left → next tab
-      setSwipeDir(1);
-      setActiveTab(TAB_IDS[currentIndex + 1]);
-    } else if (dx > 0 && currentIndex > 0) {
-      // Swipe right → previous tab
-      setSwipeDir(-1);
-      setActiveTab(TAB_IDS[currentIndex - 1]);
-    }
-    touchStartX.current = null;
+  const handleScrollSync = () => {
+     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+     scrollTimeout.current = setTimeout(() => {
+        if (!scrollContainerRef.current) return;
+        const scrollLeft = scrollContainerRef.current.scrollLeft;
+        const width = scrollContainerRef.current.clientWidth;
+        const index = Math.round(scrollLeft / width);
+        if (TAB_IDS[index] && activeTab !== TAB_IDS[index]) {
+            setActiveTab(TAB_IDS[index]);
+        }
+     }, 100);
   };
 
   const handleTabClick = (tabId) => {
-    const currentIndex = TAB_IDS.indexOf(activeTab);
-    const newIndex = TAB_IDS.indexOf(tabId);
-    setSwipeDir(newIndex >= currentIndex ? 1 : -1);
     setActiveTab(tabId);
+    if (tabId === 'report') return; // Skip scroll sync for Report overlay
+    const index = TAB_IDS.indexOf(tabId);
+    if (scrollContainerRef.current && index !== -1) {
+        scrollContainerRef.current.scrollTo({
+           left: index * scrollContainerRef.current.clientWidth,
+           behavior: 'smooth'
+        });
+    }
   };
 
   // ── Rendering flow ──
@@ -268,31 +261,34 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         </div>
       </header>
 
-      {/* ── Main Content with Swipe Support ── */}
+      {/* ── Main Content with Native Snap Swiping ── */}
       <main
-        className="app-main"
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        className="app-main swipe-container"
+        ref={scrollContainerRef}
+        onScroll={handleScrollSync}
       >
-        <AnimatePresence initial={false} custom={swipeDir}>
-          <motion.div
-            key={activeTab}
-            custom={swipeDir}
-            initial={(custom) => ({ opacity: 0.8, x: custom * 100 + '%' })}
-            animate={{ opacity: 1, x: '0%' }}
-            exit={(custom) => ({ opacity: 0.8, x: custom * -100 + '%' })}
-            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            style={{ width: '100%', height: '100%', gridColumn: 1, gridRow: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-          >
-            {activeTab === 'chat'      && <Chat user={user} />}
-            {activeTab === 'ai-coach'  && <AICoach user={user} />}
-            {activeTab === 'therapy'   && <Therapy user={user} />}
-            {activeTab === 'community' && <Community user={user} />}
-            {activeTab === 'report'    && <Report user={user} />}
-            {activeTab === 'profile'   && <Profile user={user} onLogout={onLogout} />}
-          </motion.div>
-        </AnimatePresence>
+        {NAV_TABS.map(tab => (
+          <div key={tab.id} className="swipe-slide" id={`slide-${tab.id}`}>
+            {tab.id === 'chat'      && <Chat user={user} />}
+            {tab.id === 'ai-coach'  && <AICoach user={user} />}
+            {tab.id === 'therapy'   && <Therapy user={user} />}
+            {tab.id === 'community' && <Community user={user} />}
+            {tab.id === 'profile'   && <Profile user={user} onLogout={onLogout} />}
+          </div>
+        ))}
       </main>
+
+      {/* Render Report over everything if active */}
+      <AnimatePresence>
+        {activeTab === 'report' && (
+           <motion.div
+              initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
+              style={{ position: 'absolute', top: 62, left: 0, right: 0, bottom: 0, background: 'var(--app-bg)', zIndex: 100, overflow: 'hidden' }}
+           >
+              <Report user={user} />
+           </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Bottom Navigation (mobile) — Profile tab included like Instagram ── */}
       <nav className="nav-tabs mobile-bottom-nav" role="navigation" aria-label="Main navigation">
