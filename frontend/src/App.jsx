@@ -259,9 +259,12 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
 
       {/* ── Main Content ── */}
       <main className="app-main" style={{ position: 'relative' }}>
-          {/* Mini Feature: Swipe to Journal Hint */}
-          <div style={{ position: 'absolute', bottom: '20px', left: '20px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', padding: '8px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', color: '#64748b', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10 }}>
-            <span style={{ fontSize: '16px' }}>✍️</span> Swipe/Click here to voice-dump thoughts 
+          {/* Mini Feature: Voice Dump Button (Moved up for mobile) */}
+          <div 
+            onClick={() => setShowJournalModal(true)}
+            style={{ position: 'absolute', bottom: '80px', left: '20px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '10px 18px', borderRadius: '30px', fontSize: '13px', fontWeight: '700', color: '#4f46e5', boxShadow: '0 8px 20px rgba(0,0,0,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10, border: '1px solid #4f46e5' }}
+          >
+            <span style={{ fontSize: '18px' }}>🎙️</span> Voice-dump thoughts 
           </div>
 
         <AnimatePresence mode="wait">

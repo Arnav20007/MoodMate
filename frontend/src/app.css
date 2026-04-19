@@ -43,9 +43,13 @@ body, html, #root {
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   background-color: var(--app-bg);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .app-main {
@@ -577,11 +581,15 @@ body, html, #root {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 6px 0;
-    font-size: 0.65rem;
+    padding: 6px 4px;
+    font-size: 0.6rem;
     flex: 1;
     background: transparent !important;
     box-shadow: none !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
 
   .nav-tab.active {
