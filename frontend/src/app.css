@@ -555,6 +555,20 @@ body, html, #root {
   .header-right {
     width: auto;
     justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  .sos-btn {
+    padding: 6px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .sos-text {
+    display: none;
+  }
+  
+  .stats-pill {
+    display: none !important;
   }
   
   .nav-tabs {
@@ -569,7 +583,8 @@ body, html, #root {
     z-index: 1000;
     display: flex;
     justify-content: space-around;
-    padding: 8px 5px 20px 5px; /* iOS safe area padding handled simply with 20px bottom */
+    padding: 4px 5px !important;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px) !important;
     border-radius: 0;
     overflow-x: visible;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
@@ -580,8 +595,8 @@ body, html, #root {
   .nav-tab {
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 6px 4px;
+    gap: 2px;
+    padding: 4px 2px;
     font-size: 0.6rem;
     flex: 1;
     background: transparent !important;
@@ -597,16 +612,16 @@ body, html, #root {
   }
   
   .nav-tab span[role="img"] {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
     margin-bottom: 2px;
   }
 
   .app-main {
-    padding-bottom: 75px; 
+    padding-bottom: 60px; /* Adjusted from 75px */
   }
 
   .floating-breathe-btn {
-    bottom: 90px;
+    bottom: 75px;
     right: 15px;
     width: 48px;
     height: 48px;
@@ -614,7 +629,7 @@ body, html, #root {
   }
 
   .doctor-portal-link {
-    bottom: 90px; 
+    bottom: 75px; 
   }
   
   .chat-box { padding: 1rem; padding-bottom: 2rem; }

@@ -14,7 +14,7 @@ import Onboarding from './components/Onboarding';
 
 const NAV_TABS = [
   { id: 'chat',      icon: '💬', label: 'Chat'      },
-  { id: 'ai-coach',  icon: '🤖', label: 'AI Coach'  },
+  { id: 'ai-coach',  icon: '🤖', label: 'Coach'     },
   { id: 'therapy',   icon: '👨‍⚕️', label: 'Therapy'   },
   { id: 'community', icon: '🌍', label: 'Community' },
   { id: 'report',    icon: '📊', label: 'Report'    },
@@ -180,7 +180,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             onClick={() => setShowSOSModal(true)}
             title="Emergency SOS"
           >
-            🆘 SOS
+            🆘 <span className="sos-text">SOS</span>
           </button>
           {/* Streak + Coins Pill */}
           {(user.streak > 0 || user.coins > 0) && (
