@@ -18,6 +18,7 @@ function AppWrapper() {
     confirmPassword: "",
     loginId: "",
     otp: "",
+    promoCode: "",
   });
 
   const [error, setError] = useState("");
@@ -86,6 +87,7 @@ function AppWrapper() {
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
+      promoCode: formData.promoCode,
     });
     if (data) {
       setMessage(data.message);
@@ -175,6 +177,11 @@ function AppWrapper() {
                 <p>Build self-awareness smoothly by maintaining your daily emotional rhythm.</p>
               </div>
             </div>
+          </div>
+          
+          <div className="aw-footer" style={{ marginTop: 'auto', paddingTop: '2rem', fontSize: '0.85rem', color: '#94a3b8', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'space-between' }}>
+            <span>📧 Contact: hello@moodmate.in</span>
+            <span style={{ cursor: 'pointer', textDecoration: 'underline' }}>Privacy Policy</span>
           </div>
         </div>
       </div>
@@ -269,6 +276,10 @@ function AppWrapper() {
               <div className="aw-field">
                 <label>Confirm Password</label>
                 <input className="aw-input" type="password" name="confirmPassword" placeholder="••••••••" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>Promo Code (Optional)</label>
+                <input className="aw-input" name="promoCode" placeholder="Have a beta code?" onChange={handleChange} />
               </div>
 
               <button className="aw-submit">Create Account</button>

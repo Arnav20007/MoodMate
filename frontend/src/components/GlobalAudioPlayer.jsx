@@ -45,7 +45,8 @@ export default function GlobalAudioPlayer() {
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         className="global-audio-menu"
                     >
-                        <div className="audio-menu-header">
+                        <div className="audio-menu-header" style={{ position: 'relative' }}>
+                            <button onClick={() => setIsOpen(false)} style={{ position: 'absolute', right: '0px', top: '0px', background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}>✕</button>
                             <span className="audio-icon-xl">🌿</span>
                             <h4>Ambient Backgrounds</h4>
                             <p>Persistent soundscapes (Calm parity)</p>

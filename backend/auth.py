@@ -24,6 +24,7 @@ def signup():
     email = str(data.get("email") or "").strip().lower()
     phone = str(data.get("phone") or "").strip()
     password = str(data.get("password") or "")
+    promo_code = str(data.get("promoCode") or "").strip().upper()
 
     if not username or not email or not phone or not password:
         return jsonify({
@@ -51,12 +52,15 @@ def signup():
                 bcrypt.gensalt()
             ).decode("utf-8")  # store as string in SQLite
 
+            # Check promo code
+            premium_plan = 'annual' if promo_code == 'BETA2026' else 'free'
+
             conn.execute(
                 """
-                INSERT INTO users (username, email, phone, password_hash)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO users (username, email, phone, password_hash, premium_plan)
+                VALUES (?, ?, ?, ?, ?)
                 """,
-                (username, email, phone, hashed_pw)
+                (username, email, phone, hashed_pw, premium_plan)
             )
             conn.commit()
 
