@@ -9,19 +9,22 @@ import Profile from './components/Profile';
 import Chat from './components/Chat';
 import DoctorDashboard from './components/DoctorDashboard';
 import DoctorLogin from './components/DoctorLogin';
-// import GlobalAudioPlayer from './components/GlobalAudioPlayer'; // Hidden for now
 import Onboarding from './components/Onboarding';
 
+// Bottom nav tabs — Profile lives here like Instagram
 const NAV_TABS = [
   { id: 'chat',      icon: '💬', label: 'Chat'      },
   { id: 'ai-coach',  icon: '🤖', label: 'Coach'     },
-  { id: 'therapy',   icon: '👨‍⚕️', label: 'Therapy'   },
+  { id: 'therapy',   icon: '🛋️', label: 'Therapy'   },
   { id: 'community', icon: '🌍', label: 'Community' },
-  { id: 'report',    icon: '📊', label: 'Report'    },
+  { id: 'profile',   icon: '👤', label: 'Profile'   },
 ];
+
+const TAB_IDS = NAV_TABS.map(t => t.id);
 
 const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin }) => {
   const [activeTab, setActiveTab] = useState('chat');
+  const [swipeDir, setSwipeDir] = useState(1); // 1 = going right/forward, -1 = going left/back
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('moodmate_onboarded')
   );
@@ -55,11 +58,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
 
   // ── Patient User Session ──
   const [user, setUser] = useState(initialUser || {
-    username: 'Demo User',
-    id: 1,
-    is_premium: true,
-    streak: 0,
-    coins: 0,
+    username: 'Demo User', id: 1, is_premium: true, streak: 0, coins: 0,
   });
 
   useEffect(() => {
@@ -70,17 +69,14 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   const notifRef = useRef(null);
 
   const [notifications, setNotifications] = useState([
-    { id: 0, text: `Your previous mood was recorded as ${user?.lastMood || 'centered'}. Would you like to check in now? 🧘`, time: 'Just now', unread: true },
+    { id: 0, text: `Your previous mood was recorded as ${initialUser?.lastMood || 'centered'}. Would you like to check in now? 🧘`, time: 'Just now', unread: true },
     { id: 1, text: 'Transaction complete: 5 coins awarded for activity. 🪙', time: '2m ago', unread: true },
     { id: 2, text: 'Your community contribution has received a reaction ❤️', time: '1h ago', unread: false },
     { id: 3, text: 'Clinical Insight: Your Weekly Wellness Report is available 📊', time: '3h ago', unread: false },
   ]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-  };
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
 
   // Close notification dropdown on outside click
   useEffect(() => {
@@ -89,9 +85,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         setShowNotifications(false);
       }
     };
-    if (showNotifications) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    if (showNotifications) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
@@ -116,21 +110,52 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             coins: data.coins ?? prev.coins ?? 0,
           }));
         }
-      } catch (err) {
-        // silently fail — backend may not be running in demo mode
-      }
+      } catch (err) { /* silently fail */ }
     };
     fetchUserStatus();
   }, [user?.id]);
 
-  // ── Rendering flow ──
+  // ── Swipe Navigation ──
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
 
-  // 1. Doctor Login screen (full-page takeover)
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    // Only register horizontal swipes (not scrolling)
+    if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return;
+
+    const currentIndex = TAB_IDS.indexOf(activeTab);
+    if (dx < 0 && currentIndex < TAB_IDS.length - 1) {
+      // Swipe left → next tab
+      setSwipeDir(1);
+      setActiveTab(TAB_IDS[currentIndex + 1]);
+    } else if (dx > 0 && currentIndex > 0) {
+      // Swipe right → previous tab
+      setSwipeDir(-1);
+      setActiveTab(TAB_IDS[currentIndex - 1]);
+    }
+    touchStartX.current = null;
+  };
+
+  const handleTabClick = (tabId) => {
+    const currentIndex = TAB_IDS.indexOf(activeTab);
+    const newIndex = TAB_IDS.indexOf(tabId);
+    setSwipeDir(newIndex >= currentIndex ? 1 : -1);
+    setActiveTab(tabId);
+  };
+
+  // ── Rendering flow ──
   if (showDoctorLogin && !doctorMode) {
     return <DoctorLogin onLoginSuccess={handleDoctorLogin} onBackToApp={handleDocBackToApp} />;
   }
 
-  // 2. Doctor Dashboard (full-page, no patient nav)
   if (doctorMode) {
     return (
       <div className="app-container" style={{ padding: 0 }}>
@@ -141,53 +166,28 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
     );
   }
 
-  // 3. Main Patient Dashboard/App
   return (
     <div className="app-container">
       <AnimatePresence>
         {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       </AnimatePresence>
 
-      {/* ── Header ── */}
+      {/* ── Minimal Header (Instagram/WhatsApp style) ── */}
+      <header className="app-header mobile-minimal-header">
+        {/* Left: Logo */}
+        <h1 className="app-logo">MoodMate</h1>
 
-      <header className="app-header" style={{ paddingTop: '10px' }}>
-        <div className="header-left">
-          <h1>MoodMate</h1>
-          <nav className="nav-tabs" role="navigation" aria-label="Main navigation">
-            {NAV_TABS.map(tab => (
-              <button
-                key={tab.id}
-                id={`nav-tab-${tab.id}`}
-                className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
-                onClick={() => setActiveTab(tab.id)}
-                aria-current={activeTab === tab.id ? 'page' : undefined}
-              >
-                <span role="img" aria-hidden="true">{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="header-right">
-          <button className="focus-mode-btn" style={{ background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => alert('Focus Mode Activated: Notifications are muted for 30m.')}>
-            <span>🌙</span> Focus Mode
-          </button>
-          <button 
-            className="sos-btn" 
+        {/* Right: Only bell + SOS icon + avatar — clean like IG */}
+        <div className="header-actions">
+          {/* SOS — icon only on mobile */}
+          <button
+            className="sos-icon-btn"
             onClick={() => setShowSOSModal(true)}
             title="Emergency SOS"
+            aria-label="Emergency SOS"
           >
-            🆘 <span className="sos-text">SOS</span>
+            🆘
           </button>
-          {/* Streak + Coins Pill */}
-          {(user.streak > 0 || user.coins > 0) && (
-            <div className="stats-pill">
-              <span className="stats-pill-item">🔥 {user.streak || 0}</span>
-              <span className="stats-pill-divider" />
-              <span className="stats-pill-item">🪙 {(user.coins || 0).toLocaleString('en-IN')}</span>
-            </div>
-          )}
 
           {/* Notification Bell */}
           <div ref={notifRef} style={{ position: 'relative' }}>
@@ -195,9 +195,8 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
               className="notif-btn"
               onClick={() => setShowNotifications(!showNotifications)}
               aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-              title="Notifications"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                 stroke={showNotifications ? '#6366F1' : '#64748b'}
                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -218,20 +217,16 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
                 >
                   <div className="notif-header">
                     <span>Notifications</span>
-                    <button className="notif-mark-read" onClick={markAllRead}>
-                      Mark all read
-                    </button>
+                    <button className="notif-mark-read" onClick={markAllRead}>Mark all read</button>
                   </div>
                   <div className="notif-list">
                     {notifications.map(n => (
                       <div
                         key={n.id}
                         className={`notif-item ${n.unread ? 'unread' : ''}`}
-                        onClick={() => {
-                          setNotifications(prev =>
-                            prev.map(item => item.id === n.id ? { ...item, unread: false } : item)
-                          );
-                        }}
+                        onClick={() => setNotifications(prev =>
+                          prev.map(item => item.id === n.id ? { ...item, unread: false } : item)
+                        )}
                       >
                         <div className="notif-item-text">{n.text}</div>
                         <div className="notif-item-time">{n.time}</div>
@@ -243,33 +238,52 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             </AnimatePresence>
           </div>
 
-          {/* Avatar → Profile */}
-          <button
-            className="avatar-btn"
-            onClick={() => setActiveTab('profile')}
-            title="Profile & Settings"
-            aria-label="Go to Profile"
-          >
-            {(user.username || 'U').charAt(0).toUpperCase()}
-          </button>
+          {/* Desktop nav tabs (hidden on mobile — shown in bottom nav) */}
+          <nav className="nav-tabs desktop-only" role="navigation" aria-label="Main navigation">
+            {NAV_TABS.map(tab => (
+              <button
+                key={tab.id}
+                id={`nav-tab-${tab.id}`}
+                className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
+                onClick={() => handleTabClick(tab.id)}
+                aria-current={activeTab === tab.id ? 'page' : undefined}
+              >
+                <span role="img" aria-hidden="true">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Statistics pill — desktop only */}
+          {(user.streak > 0 || user.coins > 0) && (
+            <div className="stats-pill desktop-only">
+              <span className="stats-pill-item">🔥 {user.streak || 0}</span>
+              <span className="stats-pill-divider" />
+              <span className="stats-pill-item">🪙 {(user.coins || 0).toLocaleString('en-IN')}</span>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* ── Main Content ── */}
-      <main className="app-main" style={{ position: 'relative' }}>
-
-
-        <AnimatePresence mode="wait">
+      {/* ── Main Content with Swipe Support ── */}
+      <main
+        className="app-main"
+        style={{ position: 'relative', overflow: 'hidden' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <AnimatePresence mode="wait" custom={swipeDir}>
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.985 }}
-            transition={{ duration: 0.22, ease: 'easeOut' }}
+            custom={swipeDir}
+            initial={{ opacity: 0, x: swipeDir * 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: swipeDir * -40 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
             style={{ width: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           >
             {activeTab === 'chat'      && <Chat user={user} />}
-            {activeTab === 'ai-coach' && <AICoach user={user} />}
+            {activeTab === 'ai-coach'  && <AICoach user={user} />}
             {activeTab === 'therapy'   && <Therapy user={user} />}
             {activeTab === 'community' && <Community user={user} />}
             {activeTab === 'report'    && <Report user={user} />}
@@ -278,12 +292,31 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         </AnimatePresence>
       </main>
 
-      {/* Floating Quick-Breathe Pill — bottom right */}
+      {/* ── Bottom Navigation (mobile) — Profile tab included like Instagram ── */}
+      <nav className="nav-tabs mobile-bottom-nav" role="navigation" aria-label="Main navigation">
+        {NAV_TABS.map(tab => (
+          <button
+            key={tab.id}
+            id={`nav-tab-${tab.id}`}
+            className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
+            onClick={() => handleTabClick(tab.id)}
+            aria-current={activeTab === tab.id ? 'page' : undefined}
+          >
+            {tab.id === 'profile'
+              ? <span className="nav-avatar">{(user.username || 'U').charAt(0).toUpperCase()}</span>
+              : <span role="img" aria-hidden="true">{tab.icon}</span>
+            }
+            <span className="nav-label">{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Floating Quick-Breathe Pill */}
       <motion.button
         className="floating-breathe-btn"
         whileHover={{ scale: 1.12 }}
         whileTap={{ scale: 0.92 }}
-        onClick={() => setActiveTab('ai-coach')}
+        onClick={() => handleTabClick('ai-coach')}
         title="Quick Breathing Exercise"
         aria-label="Quick Breathing Exercise"
       >
@@ -299,21 +332,17 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         🩺 Healthcare Professional Sign In
       </button>
 
-      {/* SOS/Emergency Modal - Reverted */}
+      {/* SOS Modal */}
       <AnimatePresence>
         {showSOSModal && (
-          <motion.div 
+          <motion.div
             className="sos-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowSOSModal(false)}
           >
-            <motion.div 
+            <motion.div
               className="sos-modal-content"
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="sos-modal-header">
@@ -322,7 +351,6 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
               </div>
               <div className="sos-modal-body">
                 <p>If you or someone you know is in immediate danger, please contact emergency services or a crisis helpline right away. You are not alone.</p>
-                
                 <div className="sos-helpline-list">
                   <div className="sos-item highlight">
                     <span className="sos-label">National Emergency (India)</span>
@@ -341,7 +369,6 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
                     <a href="tel:919820466726" className="sos-number">📞 +91-9820466726</a>
                   </div>
                 </div>
-
                 <div className="sos-footer-msg">
                   <p>These services are free, confidential, and available 24/7.</p>
                 </div>
@@ -350,10 +377,6 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* GlobalAudioPlayer hidden for now */}
-      {/* <GlobalAudioPlayer /> */}
-
     </div>
   );
 };
