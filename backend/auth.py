@@ -69,7 +69,7 @@ def signup():
         traceback.print_exc()
         return jsonify({
             "success": False,
-            "message": "⚠️ Server error during signup."
+            "message": f"⚠️ Server error during signup: {str(e)}"
         }), 500
 
 
