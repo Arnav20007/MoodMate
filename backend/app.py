@@ -85,8 +85,19 @@ def init_db():
     except sqlite3.OperationalError:
         pass # Already exists
 
+    # Ensure last_mood_tag exists if table already existed
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN last_mood_tag TEXT')
+    except sqlite3.OperationalError:
+        pass # Already exists
+
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN owned_items TEXT DEFAULT '[]'")
+    except sqlite3.OperationalError:
+        pass # Already exists
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN premium_plan TEXT DEFAULT 'free'")
     except sqlite3.OperationalError:
         pass # Already exists
 
