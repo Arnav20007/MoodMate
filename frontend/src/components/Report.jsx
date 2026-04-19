@@ -35,9 +35,16 @@ const Report = ({ user }) => {
       setIsLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/report?user_id=${user?.id || 1}`);
       const data = await res.json();
-      if (data.status === 'success') setReportData(data);
+      // Accept both success and graceful error responses
+      if (data.status === 'success' || data.mood_data !== undefined) {
+        setReportData(data);
+      } else {
+        // Backend returned error — use empty default so UI still renders
+        setReportData({ mood_data: [], mood_distribution: {}, streak: 0, coins: 0, total_checkins: 0, avg_score: 0, status: 'success' });
+      }
     } catch (e) {
-      console.error('Report fetch failed:', e);
+      // Network error — still show empty state, not a blank screen
+      setReportData({ mood_data: [], mood_distribution: {}, streak: 0, coins: 0, total_checkins: 0, avg_score: 0, status: 'success' });
     } finally {
       setIsLoading(false);
     }
@@ -372,15 +379,21 @@ const Report = ({ user }) => {
             </div>
             <button className="rp-modal-upgrade" onClick={async () => {
               try {
-                const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com'}/buy_premium/${user.id}`, {
+                const response = await fetch(`${API_BASE_URL}/buy_premium/${user.id}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ plan: 'monthly' })
                 });
-                if (response.ok) {
-                  window.location.reload();
+                const result = await response.json();
+                if (response.ok && result.success) {
+                  showToast('✨ Premium activated! Reloading...', '#10b981');
+                  setTimeout(() => window.location.reload(), 1500);
+                } else {
+                  showToast('⚠️ Could not process upgrade. Please try again.', '#f59e0b');
                 }
-              } catch(e) { }
+              } catch(e) {
+                showToast('⚠️ Network error. Please check your connection.', '#ef4444');
+              }
             }}>✨ Upgrade Now - ₹99/month</button>
             <p className="rp-modal-note">7-day free trial · Cancel anytime</p>
           </div>
