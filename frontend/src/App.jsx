@@ -259,13 +259,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
 
       {/* ── Main Content ── */}
       <main className="app-main" style={{ position: 'relative' }}>
-          {/* Mini Feature: Voice Dump Button (Moved up for mobile) */}
-          <div 
-            onClick={() => setShowJournalModal(true)}
-            style={{ position: 'absolute', bottom: '80px', left: '20px', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', padding: '10px 18px', borderRadius: '30px', fontSize: '13px', fontWeight: '700', color: '#4f46e5', boxShadow: '0 8px 20px rgba(0,0,0,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 10, border: '1px solid #4f46e5' }}
-          >
-            <span style={{ fontSize: '18px' }}>🎙️</span> Voice-dump thoughts 
-          </div>
+
 
         <AnimatePresence mode="wait">
           <motion.div
