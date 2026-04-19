@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 # Force load environment variables
 load_dotenv()
 
-print("🔥 [AI Service] Initializing...", flush=True)
+print("[AI Service] Initializing...", flush=True)
 
 # Config
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
@@ -16,16 +16,16 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:latest")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
-print(f"🤖 [AI Service] Config: Model={OLLAMA_MODEL}, URL={OLLAMA_URL}", flush=True)
+print(f"[AI Service] Config: Model={OLLAMA_MODEL}, URL={OLLAMA_URL}", flush=True)
 
 # Initialize Groq client
 groq_client = None
 if GROQ_API_KEY:
     try:
         groq_client = Groq(api_key=GROQ_API_KEY)
-        print("✅ [AI Service] Groq client initialized.", flush=True)
+        print("[AI Service] Groq client initialized.", flush=True)
     except Exception as e:
-        print(f"❌ [AI Service] Groq initialization failed: {e}", flush=True)
+        print(f"[AI Service] Groq initialization failed: {e}", flush=True)
 
 def get_system_prompt():
     return """You are MoodMate, an extremely empathetic, highly human mental health companion.

@@ -11,13 +11,19 @@ from gtts import gTTS
 import json
 import re
 import random
-from auth import auth_bp 
 import sqlite3
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 import traceback
-from services.ai_service import generate_ai_response
- 
+
+print("Starting application initialization...", flush=True)
+
+try:
+    from auth import auth_bp 
+    from services.ai_service import generate_ai_response
+except Exception as e:
+    print(f"CRITICAL IMPORT ERROR: {e}")
+    traceback.print_exc()
 
 # ========== Load Config ==========
 load_dotenv()
