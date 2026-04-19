@@ -271,7 +271,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.985 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
-            style={{ width: '100%', height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+            style={{ width: '100%', flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
           >
             {activeTab === 'chat'      && <Chat user={user} />}
             {activeTab === 'ai-coach' && <AICoach user={user} />}

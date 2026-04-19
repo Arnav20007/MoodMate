@@ -1,6 +1,10 @@
 /* === GLOBAL & LAYOUT === */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   --primary-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
   --primary-color: #6366F1;
@@ -49,6 +53,7 @@ body, html, #root {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
   width: 100%;
 }
 
