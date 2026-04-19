@@ -9,7 +9,7 @@ import Profile from './components/Profile';
 import Chat from './components/Chat';
 import DoctorDashboard from './components/DoctorDashboard';
 import DoctorLogin from './components/DoctorLogin';
-import GlobalAudioPlayer from './components/GlobalAudioPlayer'; // Billion-Dollar Feature #3
+// import GlobalAudioPlayer from './components/GlobalAudioPlayer'; // Hidden for now
 import Onboarding from './components/Onboarding';
 
 const NAV_TABS = [
@@ -351,8 +351,8 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         )}
       </AnimatePresence>
 
-      {/* Persistent Global Audio Player (Calm Parity) */}
-      <GlobalAudioPlayer />
+      {/* GlobalAudioPlayer hidden for now */}
+      {/* <GlobalAudioPlayer /> */}
 
     </div>
   );
