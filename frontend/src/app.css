@@ -529,39 +529,90 @@ body, html, #root {
 
 @media (max-width: 768px) {
   .app-header {
-    flex-direction: column;
+    flex-direction: row;
     height: auto;
     padding: 10px 1rem;
     gap: 8px;
+    align-items: center;
+    justify-content: space-between;
   }
   
   .header-left {
-    flex-direction: column;
+    flex-direction: row;
+    width: auto;
     gap: 8px;
-    width: 100%;
   }
 
   .header-right {
-    width: 100%;
+    width: auto;
     justify-content: flex-end;
   }
   
   .nav-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
     width: 100%;
-    overflow-x: auto;
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid #E2E8F0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 5px 20px 5px; /* iOS safe area padding handled simply with 20px bottom */
+    border-radius: 0;
+    overflow-x: visible;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+    flex-wrap: nowrap;
+    margin: 0;
   }
   
   .nav-tab {
-    font-size: 0.75rem;
-    padding: 6px 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0;
+    font-size: 0.65rem;
+    flex: 1;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .nav-tab.active {
+    color: var(--primary-color) !important;
   }
   
-  .chat-box { padding: 1rem; }
+  .nav-tab span[role="img"] {
+    font-size: 1.25rem;
+    margin-bottom: 2px;
+  }
+
+  .app-main {
+    padding-bottom: 75px; 
+  }
+
+  .floating-breathe-btn {
+    bottom: 90px;
+    right: 15px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .doctor-portal-link {
+    bottom: 90px; 
+  }
+  
+  .chat-box { padding: 1rem; padding-bottom: 2rem; }
   .chat-message { max-width: 88%; }
   .message-content { padding: 0.65rem 0.9rem; font-size: 0.9rem; }
-  .input-area { padding: 0.85rem 1rem; }
+  .input-area { padding: 0.85rem 1rem; padding-bottom: 1.2rem; }
   .send-btn { width: 42px; height: 42px; }
+  
+  .focus-mode-btn {
+    display: none !important;
+  }
 }
 /* === SOS STYLES === */
 .sos-btn {

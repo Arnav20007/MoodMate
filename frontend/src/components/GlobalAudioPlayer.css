@@ -122,3 +122,10 @@
   font-size: 18px;
   color: #6366f1;
 }
+
+@media (max-width: 768px) {
+  .global-audio-wrapper {
+    bottom: 90px;
+    left: 15px;
+  }
+}

@@ -798,6 +798,18 @@
   padding-top: 14px;
 }
 
+@media (max-width: 768px) {
+  .community-hub { padding: 16px 12px; padding-bottom: 90px; }
+  .community-header .main-title { font-size: 1.2rem; }
+  .view-toggles { overflow-x: auto; flex-wrap: nowrap; padding: 4px; }
+  .view-toggle { padding: 0.5rem 0.8rem; font-size: 0.8rem; white-space: nowrap; }
+  .create-post-card { flex-direction: column; }
+  .user-info { flex-direction: column; }
+  .post-actions { flex-wrap: wrap; }
+  .post-list { padding-bottom: 24px; }
+  .groups-grid { padding-bottom: 24px; }
+}
+
 .gc-btn {
   padding: 10px 14px;
   border-radius: 12px;

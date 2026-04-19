@@ -290,3 +290,12 @@
   .aw-features { display: none; }
   .aw-right { padding: 32px 20px; }
 }
+
+@media (max-width: 480px) {
+  .aw-left { padding: 24px; min-height: 220px; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; }
+  .aw-headline h1 { font-size: 26px; }
+  .aw-right { padding: 20px 16px; }
+  .aw-form-header h2 { font-size: 24px; }
+  .aw-input { padding: 12px 14px; font-size: 14px; }
+  .aw-submit { padding: 14px; font-size: 15px; }
+}

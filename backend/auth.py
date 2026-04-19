@@ -35,6 +35,12 @@ def signup():
     try:
         with get_db() as conn:
             # ✅ Explicit duplicate checks (NO guessing)
+            if conn.execute("SELECT 1 FROM users WHERE username=?", (username,)).fetchone():
+                return jsonify({
+                    "success": False,
+                    "message": "❌ Username already taken."
+                }), 409
+
             if conn.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
                 return jsonify({
                     "success": False,

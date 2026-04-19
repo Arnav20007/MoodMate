@@ -172,7 +172,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         </div>
 
         <div className="header-right">
-          <button style={{ background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => alert('Focus Mode Activated: Notifications are muted for 30m.')}>
+          <button className="focus-mode-btn" style={{ background: 'transparent', border: '1px solid #e2e8f0', color: '#64748b', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => alert('Focus Mode Activated: Notifications are muted for 30m.')}>
             <span>🌙</span> Focus Mode
           </button>
           <button 
