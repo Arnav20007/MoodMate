@@ -149,9 +149,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
       </AnimatePresence>
 
       {/* ── Header ── */}
-      <div style={{ background: '#f8fafc', color: '#64748b', fontSize: '12px', textAlign: 'center', padding: '6px', fontWeight: '600', borderBottom: '1px solid #e2e8f0', letterSpacing: '0.02em', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-        <span>✨ Daily Affirmation:</span> <span style={{ color: '#0f172a' }}>"You do not have to be productive to be valuable."</span>
-      </div>
+
       <header className="app-header" style={{ paddingTop: '10px' }}>
         <div className="header-left">
           <h1>MoodMate</h1>
