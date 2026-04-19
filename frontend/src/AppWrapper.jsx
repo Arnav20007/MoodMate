@@ -309,12 +309,7 @@ function AppWrapper() {
             </form>
           )}
 
-          <div className="aw-doc-link">
-            <p>Are you a healthcare provider?</p>
-            <span onClick={() => setForceDocLogin(true)}>
-              🩺 Sign in to Doctor Portal
-            </span>
-          </div>
+
         </div>
       </div>
     </div>

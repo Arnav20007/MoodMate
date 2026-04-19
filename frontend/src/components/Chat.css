@@ -457,14 +457,19 @@
   .chat-messages-container { padding: 1rem; gap: 0.65rem; }
   .chat-message { max-width: 86%; }
   .message-content { padding: 0.65rem 0.95rem; font-size: 0.88rem; }
-  .input-area-full { padding: 0.85rem 1rem; }
-  .chat-input-full { padding: 0.65rem 0.85rem; font-size: 0.9rem; }
-  .send-btn-full { width: 40px; height: 40px; }
+  .input-area-full { padding: 0.75rem 0.85rem; }
+  .input-container-full { padding: 3px 3px 3px 6px; gap: 2px; }
+  .chat-input-full { padding: 0.6rem 0.5rem; font-size: 0.88rem; min-width: 0; }
+  .mic-btn { width: 34px; height: 34px; flex-shrink: 0; }
+  .send-btn-full { width: 38px; height: 38px; flex-shrink: 0; }
 }
 
 @media (max-width: 480px) {
   .chat-message { max-width: 90%; }
   .message-content { padding: 0.6rem 0.85rem; font-size: 0.87rem; }
-  .input-area-full { padding: 0.75rem 0.85rem; }
-  .send-btn-full { width: 38px; height: 38px; }
+  .input-area-full { padding: 0.65rem 0.75rem; }
+  .input-container-full { padding: 2px 2px 2px 6px; }
+  .mic-btn { width: 32px; height: 32px; }
+  .send-btn-full { width: 36px; height: 36px; }
+  .chat-input-full { font-size: 0.86rem; padding: 0.55rem 0.4rem; }
 }
