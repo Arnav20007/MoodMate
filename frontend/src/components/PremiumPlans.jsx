@@ -137,7 +137,7 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
   };
 
   const applyPromoCode = () => {
-    if (promoCode.toUpperCase() === 'BETA100' || promoCode.toUpperCase() === 'FREEPREMIUM') {
+    if (['BETA100', 'FREEPREMIUM', 'MOODMATEVIP'].includes(promoCode.toUpperCase().trim())) {
        setPromoMessage('✅ Promo Code Applied! 100% Off.');
        // Mock the subscription instantly for the user
        setTimeout(() => {
@@ -154,10 +154,26 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
       <div className="premium-modal-content" onClick={(e) => e.stopPropagation()}>
         <button className="close-modal-btn" onClick={onClose}>×</button>
         
-        <div className="modal-header">
-          <h2>Unlock Your Full Potential</h2>
-          <p>Choose the plan that's right for your wellness journey.</p>
-        </div>
+        {user?.is_premium ? (
+          <div className="already-premium-state" style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>✨</div>
+            <h2 style={{ fontSize: '28px', color: 'white', marginBottom: '12px' }}>You are a Premium Member</h2>
+            <p style={{ color: '#94a3b8', fontSize: '16px', lineHeight: '1.6', marginBottom: '32px' }}>
+              Your account is fully upgraded with lifetime access to all Elite features, AI conversations, and advanced analytics. Thank you for your support!
+            </p>
+            <button 
+              onClick={onClose}
+              style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 32px', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)' }}
+            >
+              Continue using MoodMate
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="modal-header">
+              <h2>Unlock Your Full Potential</h2>
+              <p>Choose the plan that's right for your wellness journey.</p>
+            </div>
 
         <div className="plans-container">
           {plans.map((plan) => (
@@ -228,7 +244,9 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
             <h5>Do you offer refunds?</h5>
             <p>We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied, just let us know.</p>
           </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
