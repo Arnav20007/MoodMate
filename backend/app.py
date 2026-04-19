@@ -173,22 +173,7 @@ def get_db():
     finally:
         conn.close()
 
-# ========== Real User Endpoints for Premium / Shop ==========
-@app.route('/buy_premium/<int:user_id>', methods=['POST'])
-def buy_premium(user_id):
-    data = request.json
-    plan = data.get('plan')
-    if not plan:
-        return jsonify({'error': 'No plan selected'}), 400
 
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
-            conn.commit()
-            return jsonify({'status': 'success', 'message': f'Upgraded to {plan}'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/shop/purchase', methods=['POST'])
 def shop_purchase():
