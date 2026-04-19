@@ -253,8 +253,13 @@ function Chat({ user }) {
     return (
         <div className={`chat-container ${darkMode ? 'dark-mode' : ''}`}>
 
-            <div className="chat-header" style={{ padding: '8px 16px', borderBottom: 'none', background: 'transparent' }}>
-                <div style={{ flex: 1 }}></div>
+            <div className="chat-header" style={{ padding: '8px 16px', background: 'transparent', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                <div style={{ position: 'relative', marginRight: '0.75rem', flexShrink: 0 }}>
+                  <div className="chat-header-avatar" style={{ position: 'relative', zIndex: 1, width: '32px', height: '32px', fontSize: '14px' }}>M</div>
+                </div>
+                <div className="chat-header-info">
+                    <h2 style={{ fontSize: '14px', margin: 0, fontWeight: '700' }}>MoodMate AI</h2>
+                </div>
                 <div className="chat-header-actions">
                     <button className="header-icon-btn" onClick={clearChat} title="Clear conversation">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

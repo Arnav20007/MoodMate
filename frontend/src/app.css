@@ -55,8 +55,9 @@ body, html, #root {
 
 .app-main {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 100%;
+  grid-template-rows: 100%;
   overflow: hidden;
   min-height: 0;
   width: 100%;
@@ -102,12 +103,12 @@ body, html, #root {
   background: #FEF2F2;
   border: 1px solid #FEE2E2;
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -722,14 +723,14 @@ body, html, #root {
 .sos-modal-content {
   background: white;
   width: 100%;
-  max-width: 400px;
-  border-radius: 20px;
+  max-width: 320px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .sos-modal-header {
-  padding: 24px 30px;
+  padding: 16px 20px;
   background: #FEF2F2;
   display: flex;
   justify-content: space-between;
@@ -739,7 +740,7 @@ body, html, #root {
 
 .sos-modal-header h2 {
   color: #991B1B;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
   margin: 0;
 }
@@ -759,14 +760,14 @@ body, html, #root {
 }
 
 .sos-modal-body {
-  padding: 30px;
+  padding: 20px;
 }
 
 .sos-modal-body p {
   color: #475569;
-  line-height: 1.6;
-  margin-bottom: 24px;
-  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  font-size: 13px;
 }
 
 .sos-helpline-list {
