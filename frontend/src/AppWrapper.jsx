@@ -8,6 +8,7 @@ function AppWrapper() {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authMode, setAuthMode] = useState("login");
+  const [forceDocLogin, setForceDocLogin] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -23,10 +24,10 @@ function AppWrapper() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("moodmateUser");
-    if (storedUser) {
+    const stored = localStorage.getItem("moodmateUser");
+    if (stored) {
       try {
-        setUser(JSON.parse(storedUser));
+        setUser(JSON.parse(stored));
       } catch {
         localStorage.removeItem("moodmateUser");
       }
@@ -108,7 +109,7 @@ function AppWrapper() {
     const data = await handleAuthAction("/reset", {
       loginId: formData.loginId,
       otp: formData.otp,
-      newPassword: formData.password,
+      new_password: formData.password,
     });
     if (data) {
       setMessage(data.message);
@@ -124,89 +125,192 @@ function AppWrapper() {
   if (isLoading)
     return (
       <div className="loading-screen">
-        <h1>🌙</h1>
+        <span>🌙</span>
       </div>
     );
 
-  return <App user={{ username: "Demo User" }} onLogout={() => {}} />;
+  const hasDoctorSession = !!localStorage.getItem('moodmate_doctor_session');
+
+  if (user || hasDoctorSession || forceDocLogin) {
+    return (
+      <App 
+        user={user} 
+        onLogout={handleLogout} 
+        forceDocLogin={forceDocLogin} 
+        onCancelDocLogin={() => setForceDocLogin(false)} 
+      />
+    );
+  }
 
   return (
-    <div className="auth-container">
-      <div className="auth-box">
-        <h1>🌙 MoodMate</h1>
-        <p>Come back daily. Feel better.</p>
+    <div className="aw-page">
+      {/* ── Left Branding Panel ── */}
+      <div className="aw-left">
+        <div className="aw-brand">
+          <div className="aw-brand-logo">
+            <div className="aw-brand-icon">🌙</div>
+            <div>
+              <div className="aw-brand-name">MoodMate</div>
+              <div className="aw-brand-tag">Patient Portal</div>
+            </div>
+          </div>
+          
+          <div className="aw-headline">
+            <h1>Come back daily.<br/><span>Feel better.</span></h1>
+            <p>Your safe, guided space for mental wellness. Track your mood, chat with our AI coach, connect with therapists, and heal — day by day.</p>
+          </div>
 
-        {error && <div className="error-message">{error}</div>}
-        {message && <div className="success-message">{message}</div>}
+          <div className="aw-features">
+            <div className="aw-feature">
+              <div className="aw-feature-icon">🤖</div>
+              <div className="aw-feature-text">
+                <h4>24/7 AI Companion</h4>
+                <p>Chat anytime. Understand your triggers and receive guided strategies instantly.</p>
+              </div>
+            </div>
+            <div className="aw-feature">
+              <div className="aw-feature-icon">📊</div>
+              <div className="aw-feature-text">
+                <h4>Daily Mood Tracking</h4>
+                <p>Build self-awareness smoothly by maintaining your daily emotional rhythm.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {authMode === "login" && (
-          <form className="auth-form" onSubmit={handleLogin}>
-            <input
-              name="loginId"
-              placeholder="Email or Phone"
-              value={formData.loginId}
-              onChange={handleChange}
-              required
-            />
-            <input
-              type="password"
-              name="password"
-              placeholder="Password"
-              autoComplete="current-password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-            <button disabled={isLoading}>
-              {isLoading ? "Logging in..." : "Login"}
-            </button>
-            <p className="toggle-text">
-              <span className="toggle-link" onClick={() => setAuthMode("forgot")}>
-                Forgot Password?
-              </span>
-            </p>
-            <p className="toggle-text">
-              New here?{" "}
-              <span
-                className="toggle-link"
-                onClick={() => setAuthMode("signup")}
-              >
-                Sign Up
-              </span>
-            </p>
-          </form>
-        )}
+      {/* ── Right Login Form Panel ── */}
+      <div className="aw-right">
+        <div className="aw-form-card">
+          <div className="aw-form-header">
+            {authMode === "login" && (
+              <>
+                <h2>Welcome back</h2>
+                <p>Sign in to continue your mental wellness journey</p>
+              </>
+            )}
+            {authMode === "signup" && (
+              <>
+                <h2>Create Account</h2>
+                <p>Take the first step towards a better you</p>
+              </>
+            )}
+            {authMode === "forgot" && (
+              <>
+                <h2>Reset Password</h2>
+                <p>We'll send you an OTP to access your account</p>
+              </>
+            )}
+          </div>
 
-        {authMode === "signup" && (
-          <form className="auth-form" onSubmit={handleSignup}>
-            <input name="username" placeholder="Username" onChange={handleChange} required />
-            <input type="email" name="email" placeholder="Email" onChange={handleChange} required />
-            <input name="phone" placeholder="Phone" onChange={handleChange} required />
-            <input type="password" name="password" placeholder="Password" onChange={handleChange} required />
-            <input type="password" name="confirmPassword" placeholder="Confirm Password" onChange={handleChange} required />
-            <button>Create Account</button>
-            <p className="toggle-text">
-              <span className="toggle-link" onClick={() => setAuthMode("login")}>
-                Back to Login
-              </span>
-            </p>
-          </form>
-        )}
+          {error && <div className="aw-error">{error}</div>}
+          {message && <div className="aw-success">{message}</div>}
 
-        {authMode === "forgot" && (
-          <form className="auth-form" onSubmit={handleReset}>
-            <input name="loginId" placeholder="Email or Phone" onChange={handleChange} required />
-            <button type="button" onClick={handleForgot}>Send OTP</button>
-            <input name="otp" placeholder="OTP" onChange={handleChange} required />
-            <input type="password" name="password" placeholder="New Password" onChange={handleChange} required />
-            <button>Reset Password</button>
-            <p className="toggle-text">
-              <span className="toggle-link" onClick={() => setAuthMode("login")}>
-                Back to Login
-              </span>
-            </p>
-          </form>
-        )}
+          {authMode === "login" && (
+            <form className="aw-form" onSubmit={handleLogin}>
+              <div className="aw-field">
+                <label>Email or Phone</label>
+                <input
+                  className="aw-input"
+                  name="loginId"
+                  placeholder="Enter email or phone"
+                  value={formData.loginId}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="aw-field">
+                <label>Password</label>
+                <input
+                  className="aw-input"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="aw-row">
+                <span className="aw-forgot" onClick={() => setAuthMode("forgot")}>
+                  Forgot Password?
+                </span>
+              </div>
+              <button className="aw-submit" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login"}
+              </button>
+              
+              <div className="aw-toggle">
+                New here? <span onClick={() => setAuthMode("signup")}>Create an account</span>
+              </div>
+            </form>
+          )}
+
+          {authMode === "signup" && (
+            <form className="aw-form" onSubmit={handleSignup}>
+              
+              <div className="aw-field">
+                <label>Username</label>
+                <input className="aw-input" name="username" placeholder="e.g. John Doe" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>Email</label>
+                <input className="aw-input" type="email" name="email" placeholder="john@example.com" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>Phone</label>
+                <input className="aw-input" name="phone" placeholder="+91 00000 00000" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>Password</label>
+                <input className="aw-input" type="password" name="password" placeholder="••••••••" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>Confirm Password</label>
+                <input className="aw-input" type="password" name="confirmPassword" placeholder="••••••••" onChange={handleChange} required />
+              </div>
+
+              <button className="aw-submit">Create Account</button>
+              
+              <div className="aw-toggle">
+                Already have an account? <span onClick={() => setAuthMode("login")}>Sign in instead</span>
+              </div>
+            </form>
+          )}
+
+          {authMode === "forgot" && (
+            <form className="aw-form" onSubmit={handleReset}>
+              <div className="aw-field">
+                <label>Email or Phone</label>
+                <input className="aw-input" name="loginId" placeholder="Enter email or phone" onChange={handleChange} required />
+              </div>
+              <button type="button" className="aw-submit" style={{ background: '#475569' }} onClick={handleForgot}>Send OTP</button>
+              
+              <div className="aw-field" style={{ marginTop: '8px' }}>
+                <label>OTP</label>
+                <input className="aw-input" name="otp" placeholder="Enter OTP" onChange={handleChange} required />
+              </div>
+              <div className="aw-field">
+                <label>New Password</label>
+                <input className="aw-input" type="password" name="password" placeholder="••••••••" onChange={handleChange} required />
+              </div>
+
+              <button className="aw-submit">Reset Password</button>
+              
+              <div className="aw-toggle">
+                Remember your password? <span onClick={() => setAuthMode("login")}>Back to login</span>
+              </div>
+            </form>
+          )}
+
+          <div className="aw-doc-link">
+            <p>Are you a healthcare provider?</p>
+            <span onClick={() => setForceDocLogin(true)}>
+              🩺 Sign in to Doctor Portal
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );

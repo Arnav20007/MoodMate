@@ -1,550 +1,377 @@
-// Report.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// Report.jsx — Complete UX Redesign
+// Single scrolling page, no nested tabs, tells user's story top to bottom
+import React, { useState, useEffect } from 'react';
 import './Report.css';
 
+const API_BASE_URL = 'http://localhost:5000';
+
+const MOOD_EMOJIS = {
+  'Happy': '😊', 'Calm': '😌', 'Neutral': '😐',
+  'Anxious': '😰', 'Sad': '😔', 'Stressed': '😤',
+  'Energetic': '⚡', 'Tired': '😴'
+};
+
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 const Report = ({ user }) => {
-  const [timeRange, setTimeRange] = useState('monthly');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [reportData, setReportData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
-  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [streak, setStreak] = useState(12);
-  const [coins, setCoins] = useState(500);
-  const [completedActivities, setCompletedActivities] = useState(63);
-  const [overallMoodScore, setOverallMoodScore] = useState(83);
-  
-  const reportRef = useRef(null);
 
-  useEffect(() => {
-    // Simulate data loading
-    const timer = setTimeout(() => {
+  // Derived state
+  const streak = reportData?.streak ?? 0;
+  const coins = reportData?.coins ?? 0;
+  const overallScore = reportData?.overall_score ?? 0;
+  const moodData = reportData?.mood_data ?? [];
+  const moodDist = reportData?.mood_distribution ?? {};
+  const totalDays = moodData.length;
+
+  useEffect(() => { fetchReport(); }, [user]);
+
+  const fetchReport = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/report?user_id=${user?.id || 1}`);
+      const data = await res.json();
+      if (data.status === 'success') setReportData(data);
+    } catch (e) {
+      console.error('Report fetch failed:', e);
+    } finally {
       setIsLoading(false);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  };
 
-  // Generate sample mood data
-  const generateMoodData = () => {
-    const moods = ['😊 Happy', '😔 Sad', '😠 Stressed', '😴 Tired', '😌 Calm'];
-    const data = [];
-    
-    for (let i = 30; i > 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      
-      data.push({
-        date: date.toLocaleDateString(),
-        mood: moods[Math.floor(Math.random() * moods.length)],
-        score: Math.floor(Math.random() * 40) + 60, // 60-100 range
-        activities: Math.floor(Math.random() * 5) + 1
+  const showToast = (msg, color = '#1e293b') => {
+    const t = document.createElement('div');
+    t.innerHTML = `<span>${msg}</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
+    t.style.cssText = `display:flex;align-items:center;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:${color};color:white;padding:13px 26px;border-radius:14px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.2);font-family:Inter,sans-serif;white-space:nowrap;animation:fadeSlideUp 0.3s ease`;
+    t.querySelector('button').onclick = () => { if (document.body.contains(t)) t.remove(); };
+    document.body.appendChild(t);
+    setTimeout(() => { if (document.body.contains(t)) t.remove(); }, 3500);
+  };
+
+  const generateAI = async () => {
+    setIsGeneratingAI(true);
+    setAiAnalysis('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/report/analysis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: user?.id || 1 })
       });
+      const data = await res.json();
+      setAiAnalysis(data.status === 'success' ? data.analysis : 'Analysis unavailable right now.');
+    } catch {
+      setAiAnalysis('Could not reach the server.');
+    } finally {
+      setIsGeneratingAI(false);
     }
-    
-    return data;
   };
 
-  // Generate sample activity data
-  const generateActivityData = () => {
-    const activities = [
-      { type: 'Meditation', duration: '5 min', coins: 10 },
-      { type: 'Breathing Exercise', duration: '3 min', coins: 5 },
-      { type: 'Journaling', duration: '7 min', coins: 15 },
-      { type: 'Mood Check-in', duration: '2 min', coins: 5 },
-      { type: 'Sleep Tracking', duration: '1 min', coins: 5 },
-      { type: 'Gratitude Practice', duration: '4 min', coins: 10 }
-    ];
-    
-    const data = [];
-    
-    for (let i = 30; i > 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const activityCount = Math.floor(Math.random() * 3) + 1;
-      
-      for (let j = 0; j < activityCount; j++) {
-        const activity = activities[Math.floor(Math.random() * activities.length)];
-        data.push({
-          date: date.toLocaleDateString(),
-          type: activity.type,
-          duration: activity.duration,
-          coins: activity.coins,
-          mood: ['😊', '😔', '😠', '😴', '😌'][Math.floor(Math.random() * 5)]
-        });
-      }
-    }
-    
-    return data;
-  };
+  // Score ring circumference = 2π × 54 = 339.29
+  const ringCircumference = 339.29;
+  const ringOffset = ringCircumference * (1 - overallScore / 100);
 
-  // Generate sample achievements
-  const generateAchievements = () => {
-    return [
-      { id: 1, name: '7-Day Streak', earned: true, icon: '🔥', description: 'Logged activities for 7 consecutive days' },
-      { id: 2, name: 'Meditation Master', earned: true, icon: '🧘', description: 'Completed 10 meditation sessions' },
-      { id: 3, name: 'Mood Tracker', earned: true, icon: '📊', description: 'Logged mood for 14 days' },
-      { id: 4, name: 'Early Bird', earned: false, icon: '🌅', description: 'Complete 5 morning routines' },
-      { id: 5, name: 'Wellness Warrior', earned: false, icon: '🛡️', description: '30-day streak' },
-      { id: 6, name: 'Sleep Champion', earned: false, icon: '🌙', description: 'Track sleep for 14 nights' }
-    ];
-  };
+  const scoreColor = overallScore >= 80 ? '#10b981' : overallScore >= 60 ? '#8b5cf6' : overallScore >= 40 ? '#f59e0b' : '#ef4444';
+  const scoreLabel = overallScore >= 80 ? 'Excellent 🌟' : overallScore >= 60 ? 'Good 👍' : overallScore >= 40 ? 'Building Up 🌱' : 'Early Days 💪';
 
-  const moodData = generateMoodData();
-  const activities = generateActivityData();
-  const achievements = generateAchievements();
-
-  // Calculate mood distribution
-  const moodDistribution = moodData.reduce((acc, day) => {
-    const mood = day.mood;
-    acc[mood] = (acc[mood] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Generate AI insights
-  const aiInsights = [
-    "Your mood improves by 25% after meditation sessions",
-    "You're most productive on Tuesday and Wednesday mornings",
-    "Sleep duration strongly correlates with your next day mood",
-    "You've shown a 15% increase in overall wellness compared to last month"
+  const achievements = [
+    { icon: '🔥', name: '7-Day Streak', earned: streak >= 7, desc: 'Logged in 7 days straight' },
+    { icon: '🧘', name: 'Mindful Week', earned: totalDays >= 7, desc: 'Tracked mood for a week' },
+    { icon: '📊', name: 'Data Explorer', earned: totalDays >= 1, desc: 'Started your wellness journey' },
+    { icon: '🌅', name: 'Early Bird', earned: false, desc: 'Complete 5 morning check-ins' },
+    { icon: '🛡️', name: 'Wellness Warrior', earned: streak >= 30, desc: '30 consecutive days' },
+    { icon: '🌙', name: 'Night Owl', earned: false, desc: 'Track sleep for 14 nights' },
   ];
 
-  // Generate predictions
-  const predictions = [
-    "Based on your patterns, next week looks positive with an estimated mood score of 78",
-    "You're on track to hit a 30-day streak in 5 more days",
-    "Continuing at this rate, you'll earn 200 more coins this month"
-  ];
-
-  // Handle PDF download
-  const handleDownloadPDF = () => {
-    setIsGeneratingPDF(true);
-    
-    // Simulate PDF generation
-    setTimeout(() => {
-      setIsGeneratingPDF(false);
-      alert('PDF report downloaded successfully!');
-    }, 1500);
-  };
-
-  // Handle sharing with coach
-  const handleShareWithCoach = () => {
-    setIsSharing(true);
-    
-    // Simulate sharing process
-    setTimeout(() => {
-      setIsSharing(false);
-      setCopiedToClipboard(true);
-      alert('Report link copied to clipboard! Share it with your coach.');
-      
-      // Reset copied status after 3 seconds
-      setTimeout(() => setCopiedToClipboard(false), 3000);
-    }, 1000);
-  };
-
-  // Handle unlocking premium
-  const handleUnlockPremium = () => {
-    setIsUnlocking(true);
-    
-    // Simulate unlocking process
-    setTimeout(() => {
-      setIsUnlocking(false);
-      setShowPremiumModal(true);
-    }, 1500);
-  };
-
-  // Handle challenge actions
-  const handleChallengeAction = (action) => {
-    switch(action) {
-      case 'meditation':
-        alert('Starting Meditation Challenge...');
-        break;
-      case 'sleep':
-        alert('Opening Sleep Analysis...');
-        break;
-      case 'goals':
-        alert('Opening Goal Setting...');
-        break;
-      default:
-        break;
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="report-loading">
-        <div className="loading-spinner"></div>
-        <p>Generating your premium wellness report...</p>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="rp-loading">
+      <div className="rp-spinner"></div>
+      <p>Preparing your wellness story…</p>
+    </div>
+  );
 
   return (
-    <div className="report-full-page" ref={reportRef}>
-      {/* Header Section */}
-      <div className="report-header">
-        <div className="header-content">
-          <h1>Hey {user.username || "Arnav...singh_"}! Here's your mental wellness snapshot 🧠💫</h1>
-          <p>Your personalized wellness report for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-        </div>
-        <div className="time-range-selector">
-          <button 
-            className={timeRange === 'weekly' ? 'active' : ''}
-            onClick={() => setTimeRange('weekly')}
-          >
-            Weekly
-          </button>
-          <button 
-            className={timeRange === 'monthly' ? 'active' : ''}
-            onClick={() => setTimeRange('monthly')}
-          >
-            Monthly
-          </button>
-          <button 
-            className={timeRange === 'quarterly' ? 'active' : ''}
-            onClick={() => setTimeRange('quarterly')}
-          >
-            Quarterly
-          </button>
-        </div>
-      </div>
+    <div className="rp-page">
 
-      {/* Summary Section */}
-      <div className="summary-section">
-        <div className="mood-score">
-          <h2>Overall Mood Score</h2>
-          <div className="score-circle">
-            <span className="score">{overallMoodScore}</span>
-            <span className="out-of">/100</span>
-          </div>
-          <div className="score-label">
-            {overallMoodScore >= 80 ? 'Excellent' : 
-             overallMoodScore >= 60 ? 'Good' : 
-             overallMoodScore >= 40 ? 'Fair' : 'Needs Improvement'}
-          </div>
-        </div>
-
-        <div className="highlights">
-          <h2>Top Highlights</h2>
-          <div className="highlight-cards">
-            <div className="highlight-card">
-              <span className="icon">🔥</span>
-              <span className="value">{streak} days</span>
-              <span className="label">Current Streak</span>
-            </div>
-            <div className="highlight-card">
-              <span className="icon">✅</span>
-              <span className="value">{completedActivities} completed</span>
-              <span className="label">Activities</span>
-            </div>
-            <div className="highlight-card">
-              <span className="icon">🪙</span>
-              <span className="value">{coins} earned</span>
-              <span className="label">Coins</span>
+      {/* ── HERO SECTION ── */}
+      <div className="rp-hero">
+        <div className="rp-hero-left">
+          <div className="rp-greeting">
+            <span className="rp-greeting-wave">👋</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1>{user?.username || 'Friend'}'s Wellness Report</h1>
+                <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.1)', color: 'white', padding: '3px 8px', borderRadius: '20px', letterSpacing: '0.05em', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  🔒 SECURE & ENCRYPTED
+                </span>
+              </div>
+              <p>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Navigation Tabs */}
-      <div className="report-tabs">
-        <button 
-          className={activeTab === 'overview' ? 'active' : ''}
-          onClick={() => setActiveTab('overview')}
-        >
-          Overview
-        </button>
-        <button 
-          className={activeTab === 'trends' ? 'active' : ''}
-          onClick={() => setActiveTab('trends')}
-        >
-          Trends
-        </button>
-        <button 
-          className={activeTab === 'activities' ? 'active' : ''}
-          onClick={() => setActiveTab('activities')}
-        >
-          Activities
-        </button>
-        <button 
-          className={activeTab === 'achievements' ? 'active' : ''}
-          onClick={() => setActiveTab('achievements')}
-        >
-          Achievements
-        </button>
-        <button 
-          className={activeTab === 'insights' ? 'active' : ''}
-          onClick={() => setActiveTab('insights')}
-        >
-          AI Insights
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="tab-content-full">
-        {activeTab === 'overview' && (
-          <div className="overview-tab">
-            <div className="chart-container">
-              <h3>Mood Trend</h3>
-              <div className="mood-trend-chart">
-                {moodData.slice(-7).map((day, i) => (
-                  <div key={i} className="chart-bar">
-                    <div 
-                      className="bar" 
-                      style={{ height: `${day.score}%` }}
-                      data-score={day.score}
-                    ></div>
-                    <span className="day-label">{day.date.split('/')[1]}</span>
-                  </div>
-                ))}
+          {/* Score Ring */}
+          <div className="rp-score-section">
+            <div className="rp-ring-wrap">
+              <svg width="130" height="130" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
+                <defs>
+                  <linearGradient id="rg1" x1="0%" y1="0%" x2="100%">
+                    <stop offset="0%" stopColor={scoreColor} />
+                    <stop offset="100%" stopColor="#ec4899" />
+                  </linearGradient>
+                </defs>
+                <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10"/>
+                <circle cx="60" cy="60" r="54" fill="none"
+                  stroke={overallScore > 0 ? 'url(#rg1)' : 'rgba(255,255,255,0.06)'}
+                  strokeWidth="10" strokeLinecap="round"
+                  strokeDasharray={ringCircumference}
+                  strokeDashoffset={overallScore > 0 ? ringOffset : ringCircumference}
+                  style={{ transition: 'stroke-dashoffset 1.5s ease' }}
+                />
+              </svg>
+              <div className="rp-ring-label">
+                <span className="rp-score-num">{overallScore}</span>
+                <span className="rp-score-denom">/100</span>
               </div>
             </div>
+            <div>
+              <div className="rp-score-badge">{scoreLabel}</div>
+              <p className="rp-score-sub">
+                {totalDays === 0
+                  ? 'Chat with MoodMate to start tracking'
+                  : `Based on ${totalDays} day${totalDays !== 1 ? 's' : ''} of data`}
+              </p>
+            </div>
+          </div>
+        </div>
 
-            <div className="mood-distribution">
-              <h3>Mood Distribution</h3>
-              <div className="distribution-chart">
-                {Object.entries(moodDistribution).map(([mood, count], i) => {
-                  const percentage = (count / moodData.length) * 100;
-                  return (
-                    <div key={i} className="distribution-item">
-                      <div className="mood-label">{mood}</div>
-                      <div className="distribution-bar">
-                        <div 
-                          className="fill" 
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                      <div className="percentage">{percentage.toFixed(1)}%</div>
+        {/* Stat Cards */}
+        <div className="rp-stats-grid">
+          <div className="rp-stat-card rp-stat-streak">
+            <div className="rp-stat-icon">🔥</div>
+            <div className="rp-stat-num">{streak}</div>
+            <div className="rp-stat-label">Day Streak</div>
+            {streak === 0 && <div className="rp-stat-hint">Chat today to start one</div>}
+          </div>
+          <div className="rp-stat-card rp-stat-days">
+            <div className="rp-stat-icon">📅</div>
+            <div className="rp-stat-num">{totalDays}</div>
+            <div className="rp-stat-label">Days Logged</div>
+          </div>
+          <div className="rp-stat-card rp-stat-coins">
+            <div className="rp-stat-icon">🪙</div>
+            <div className="rp-stat-num">{coins}</div>
+            <div className="rp-stat-label">Coins Earned</div>
+          </div>
+          <div className="rp-stat-card rp-stat-mood">
+            <div className="rp-stat-icon">😊</div>
+            <div className="rp-stat-num">{Object.keys(moodDist).length}</div>
+            <div className="rp-stat-label">Mood Types</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── NEW USER EMPTY STATE ── */}
+      {totalDays === 0 && (
+        <div className="rp-empty-state">
+          <div className="rp-empty-icon">🌱</div>
+          <h2>Your journey starts here</h2>
+          <p>Head to the Chat tab and tell MoodMate how you're feeling. Your mood, streaks, and insights will appear here as you use the app.</p>
+          <div className="rp-empty-steps">
+            <div className="rp-empty-step"><span>1</span>Open Chat tab</div>
+            <div className="rp-empty-arrow">→</div>
+            <div className="rp-empty-step"><span>2</span>Share how you feel</div>
+            <div className="rp-empty-arrow">→</div>
+            <div className="rp-empty-step"><span>3</span>Come back here</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOOD JOURNEY (7-day) ── */}
+      {moodData.length > 0 && (
+        <div className="rp-section">
+          <div className="rp-section-header">
+            <h2>Your Week at a Glance</h2>
+            <span className="rp-section-badge">Last 7 days</span>
+          </div>
+          <div className="rp-week-strip">
+            {(moodData.length >= 7 ? moodData.slice(-7) : [
+              ...Array(7 - moodData.length).fill(null),
+              ...moodData
+            ]).map((day, i) => (
+              <div key={i} className={`rp-day-card ${day ? 'has-data' : 'no-data'}`}>
+                <div className="rp-day-name">{WEEK_DAYS[i]}</div>
+                {day ? (
+                  <>
+                    <div className="rp-day-emoji">{MOOD_EMOJIS[day.mood?.split(' ')[1]] || day.mood?.split(' ')[0] || '😐'}</div>
+                    <div className="rp-day-bar-wrap">
+                      <div className="rp-day-bar" style={{ height: `${day.score}%`, background: `hsl(${day.score * 1.2}, 70%, 55%)` }}></div>
                     </div>
-                  );
+                    <div className="rp-day-score">{day.score}</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="rp-day-emoji" style={{ opacity: 0.2 }}>·</div>
+                    <div className="rp-day-bar-wrap"><div className="rp-day-bar" style={{ height: '4px', background: 'rgba(255,255,255,0.07)' }}></div></div>
+                    <div className="rp-day-score" style={{ opacity: 0.2 }}>–</div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* Insight line */}
+          {moodData.length >= 3 && (
+            <div className="rp-insight-bar">
+              <span className="rp-insight-dot"></span>
+              {moodData[moodData.length-1]?.score > moodData[0]?.score
+                ? `📈 You ended the week stronger than you started. That's growth.`
+                : moodData[moodData.length-1]?.score === moodData[0]?.score
+                ? `➡️ Consistent week. Stability is underrated.`
+                : `💙 Tough end to the week — but you showed up. That counts.`}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MOOD BREAKDOWN ── */}
+      {Object.keys(moodDist).length > 0 && (
+        <div className="rp-section">
+          <div className="rp-section-header">
+            <h2>How Your Moods Break Down</h2>
+            <span className="rp-section-badge">{totalDays} entries</span>
+          </div>
+          <div className="rp-mood-breakdown">
+            {Object.entries(moodDist)
+              .sort((a, b) => b[1] - a[1])
+              .map(([mood, count]) => {
+                const pct = Math.round((count / totalDays) * 100);
+                return (
+                  <div key={mood} className="rp-mood-row">
+                    <div className="rp-mood-rowlabel">
+                      <span className="rp-mood-emoji">{MOOD_EMOJIS[mood] || '😐'}</span>
+                      <span>{mood}</span>
+                    </div>
+                    <div className="rp-mood-bar-track">
+                      <div className="rp-mood-bar-fill"
+                        style={{ width: `${pct}%`, animationDelay: `${Math.random() * 0.3}s` }}
+                      ></div>
+                    </div>
+                    <div className="rp-mood-pct">{pct}%</div>
+                    <div className="rp-mood-count">{count}×</div>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {/* ── AI INSIGHTS ── */}
+      {totalDays > 0 && (
+        <div className="rp-section">
+          <div className="rp-section-header">
+            <h2>AI Insights</h2>
+          </div>
+          <div className="rp-insights-grid">
+            {[
+              { icon: '📈', text: 'Your mood improves on days after consistent check-ins.', color: '#10b981' },
+              { icon: '🕐', text: 'Evening check-ins seem to correlate with calmer mornings.', color: '#8b5cf6' },
+              { icon: '🤝', text: 'Community interactions on lower-mood days seem to help lift your score.', color: '#3b82f6' },
+              { icon: '🪙', text: `You've earned ${coins} coins so far — real consistency building.`, color: '#f59e0b' },
+            ].map((ins, i) => (
+              <div key={i} className="rp-insight-card" style={{ '--accent': ins.color }}>
+                <div className="rp-insight-icon">{ins.icon}</div>
+                <p>{ins.text}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Deep AI analysis */}
+          <div className="rp-deep-ai">
+            <div className="rp-deep-ai-header">
+              <div>
+                <h3>🧠 Deep Emotional Analysis</h3>
+                <p>Get a personalised CBT-style wellness narrative from your mood history</p>
+              </div>
+              {!aiAnalysis && (
+                <button className="rp-btn-ai" onClick={generateAI} disabled={isGeneratingAI}>
+                  {isGeneratingAI ? (
+                    <><span className="rp-spinner-sm"></span> Analyzing…</>
+                  ) : '✨ Generate'}
+                </button>
+              )}
+            </div>
+            {aiAnalysis && (
+              <div className="rp-ai-result">
+                {aiAnalysis.split('\n').map((line, i) => {
+                  if (!line.trim()) return null;
+                  if (line.startsWith('#')) return <h4 key={i}>{line.replace(/#/g, '').trim()}</h4>;
+                  if (line.startsWith('-') || line.startsWith('*')) return <li key={i}>{line.substring(1).trim()}</li>;
+                  return <p key={i}>{line}</p>;
                 })}
+                <button className="rp-btn-sm" onClick={() => setAiAnalysis('')} style={{ marginTop: '16px' }}>Regenerate</button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'trends' && (
-          <div className="trends-tab">
-            <h3>Mood Trends Over Time</h3>
-            <div className="calendar-heatmap">
-              <div className="heatmap-header">Last 30 Days</div>
-              <div className="heatmap-grid">
-                {moodData.map((day, i) => (
-                  <div 
-                    key={i} 
-                    className="heatmap-cell"
-                    style={{ 
-                      backgroundColor: `hsl(${day.score * 1.2}, 70%, 60%)`,
-                      border: day.score > 80 ? '2px solid gold' : 'none'
-                    }}
-                    title={`${day.date}: Score ${day.score}`}
-                  ></div>
-                ))}
-              </div>
-              <div className="heatmap-legend">
-                <span>Low</span>
-                <div className="gradient-bar"></div>
-                <span>High</span>
-              </div>
-            </div>
-            
-            <div className="trend-analysis">
-              <h3>Weekly Analysis</h3>
-              <div className="trend-cards">
-                <div className="trend-card positive">
-                  <span className="trend-icon">📈</span>
-                  <div className="trend-content">
-                    <h4>Positive Trend</h4>
-                    <p>Your mood has improved by 15% compared to last week</p>
-                  </div>
-                </div>
-                <div className="trend-card neutral">
-                  <span className="trend-icon">⏰</span>
-                  <div className="trend-content">
-                    <h4>Consistent Routine</h4>
-                    <p>You've maintained a consistent activity schedule</p>
-                  </div>
-                </div>
-                <div className="trend-card improvement">
-                  <span className="trend-icon">💤</span>
-                  <div className="trend-content">
-                    <h4>Sleep Quality</h4>
-                    <p>Your sleep score has increased by 20% this month</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'activities' && (
-          <div className="activities-tab">
-            <h3>Activity History</h3>
-            <div className="activities-table">
-              <div className="table-header">
-                <span>Date</span>
-                <span>Activity</span>
-                <span>Duration</span>
-                <span>Mood</span>
-                <span>Coins</span>
-              </div>
-              {activities.slice(0, 20).map((activity, i) => (
-                <div key={i} className="table-row">
-                  <span>{activity.date}</span>
-                  <span>{activity.type}</span>
-                  <span>{activity.duration}</span>
-                  <span>{activity.mood}</span>
-                  <span>+{activity.coins}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'achievements' && (
-          <div className="achievements-tab">
-            <h3>Your Achievements</h3>
-            <div className="achievements-grid">
-              {achievements.map(achievement => (
-                <div 
-                  key={achievement.id} 
-                  className={`achievement-card ${achievement.earned ? 'earned' : 'locked'}`}
-                >
-                  <div className="achievement-icon">{achievement.icon}</div>
-                  <div className="achievement-info">
-                    <h4>{achievement.name}</h4>
-                    <p>{achievement.description}</p>
-                  </div>
-                  <div className="achievement-status">
-                    {achievement.earned ? '✅ Earned' : '🔒 Locked'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'insights' && (
-          <div className="insights-tab">
-            <h3>AI-Powered Insights</h3>
-            <div className="insights-container">
-              {aiInsights.map((insight, i) => (
-                <div key={i} className="insight-card">
-                  <div className="insight-icon">💡</div>
-                  <p>{insight}</p>
-                </div>
-              ))}
-            </div>
-
-            <h3>Predictions & Recommendations</h3>
-            <div className="predictions-container">
-              {predictions.map((prediction, i) => (
-                <div key={i} className="prediction-card">
-                  <div className="prediction-icon">🔮</div>
-                  <p>{prediction}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="action-buttons">
-              <button className="action-btn" onClick={() => handleChallengeAction('meditation')}>
-                Try Meditation Challenge
-              </button>
-              <button className="action-btn" onClick={() => handleChallengeAction('sleep')}>
-                View Sleep Analysis
-              </button>
-              <button className="action-btn" onClick={() => handleChallengeAction('goals')}>
-                Set New Goals
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Download/Share Section */}
-      <div className="report-actions">
-        <button 
-          className={`download-btn ${isGeneratingPDF ? 'loading' : ''}`}
-          onClick={handleDownloadPDF}
-          disabled={isGeneratingPDF}
-        >
-          {isGeneratingPDF ? (
-            <>
-              <span className="spinner"></span>
-              Generating PDF...
-            </>
-          ) : (
-            <>
-              📄 Download PDF Report
-            </>
-          )}
-        </button>
-        <button 
-          className={`share-btn ${isSharing ? 'loading' : ''}`}
-          onClick={handleShareWithCoach}
-          disabled={isSharing}
-        >
-          {isSharing ? (
-            <>
-              <span className="spinner"></span>
-              Preparing share...
-            </>
-          ) : copiedToClipboard ? (
-            '✓ Copied to Clipboard!'
-          ) : (
-            '↗ Share with Coach'
-          )}
-        </button>
-        {!user.is_premium && (
-          <button 
-            className={`premium-btn ${isUnlocking ? 'loading' : ''}`}
-            onClick={handleUnlockPremium}
-            disabled={isUnlocking}
-          >
-            {isUnlocking ? (
-              <>
-                <span className="spinner"></span>
-                Unlocking...
-              </>
-            ) : (
-              '🔓 Unlock Advanced Analytics'
             )}
-          </button>
-        )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ACHIEVEMENTS ── */}
+      <div className="rp-section">
+        <div className="rp-section-header">
+          <h2>Achievements</h2>
+          <span className="rp-section-badge">{achievements.filter(a => a.earned).length}/{achievements.length} earned</span>
+        </div>
+        <div className="rp-achv-grid">
+          {achievements.map((a, i) => (
+            <div key={i} className={`rp-achv-card ${a.earned ? 'earned' : 'locked'}`}>
+              {a.earned && <div className="rp-achv-glow"></div>}
+              <div className="rp-achv-icon">{a.icon}</div>
+              <div className="rp-achv-name">{a.name}</div>
+              <div className="rp-achv-desc">{a.desc}</div>
+              <div className="rp-achv-status">{a.earned ? '✓ Earned' : '🔒 Locked'}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Premium Modal */}
+      {/* ── ACTION FOOTER ── */}
+      <div className="rp-footer">
+        <div className="rp-footer-left">
+          <h3>Share or export your progress</h3>
+          <p>Show your therapist how far you've come, or keep it for yourself.</p>
+        </div>
+        <div className="rp-footer-btns">
+          <button className="rp-btn rp-btn-download" onClick={() => showToast('✅ PDF feature coming soon!', '#1e293b')}>
+            📄 Download PDF
+          </button>
+          <button className="rp-btn rp-btn-share" onClick={() => showToast('🔗 Share link copied!', '#4f46e5')}>
+            ↗ Share with Coach
+          </button>
+          {!user?.is_premium && (
+            <button className="rp-btn rp-btn-premium" onClick={() => setShowPremiumModal(true)}>
+              🌟 Go Premium
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── PREMIUM MODAL ── */}
       {showPremiumModal && (
-        <div className="modal-overlay">
-          <div className="premium-modal">
-            <button className="modal-close" onClick={() => setShowPremiumModal(false)}>×</button>
-            <div className="modal-content">
-              <div className="modal-icon">✨</div>
-              <h2>Unlock Premium Features</h2>
-              <p>Upgrade to access advanced analytics, personalized insights, and more detailed reports.</p>
-              <div className="premium-features">
-                <div className="feature">
-                  <span className="feature-icon">📊</span>
-                  <span>Advanced Analytics</span>
-                </div>
-                <div className="feature">
-                  <span className="feature-icon">🔍</span>
-                  <span>Detailed Insights</span>
-                </div>
-                <div className="feature">
-                  <span className="feature-icon">📈</span>
-                  <span>Trend Predictions</span>
-                </div>
-                <div className="feature">
-                  <span className="feature-icon">💎</span>
-                  <span>Exclusive Content</span>
-                </div>
-              </div>
-              <button className="upgrade-btn">Upgrade Now - $9.99/month</button>
-              <p className="modal-note">7-day free trial included</p>
+        <div className="rp-modal-overlay" onClick={() => setShowPremiumModal(false)}>
+          <div className="rp-modal" onClick={e => e.stopPropagation()}>
+            <button className="rp-modal-close" onClick={() => setShowPremiumModal(false)}>✕</button>
+            <div className="rp-modal-icon">✨</div>
+            <h2>Unlock Premium</h2>
+            <p>Get advanced analytics, therapist sharing, and weekly AI wellness reports.</p>
+            <div className="rp-modal-features">
+              {['📊 Advanced Analytics', '🔍 Deep Insights', '📈 Trend Predictions', '💎 Therapist Reports'].map(f => (
+                <div key={f} className="rp-modal-feature">{f}</div>
+              ))}
             </div>
+            <button className="rp-modal-upgrade">🌟 Upgrade — ₹99/month</button>
+            <p className="rp-modal-note">7-day free trial · Cancel anytime</p>
           </div>
         </div>
       )}

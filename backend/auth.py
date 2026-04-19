@@ -49,7 +49,7 @@ def signup():
             hashed_pw = bcrypt.hashpw(
                 password.encode("utf-8"),
                 bcrypt.gensalt()
-            )
+            ).decode("utf-8")  # store as string in SQLite
 
             conn.execute(
                 """
@@ -99,7 +99,25 @@ def login():
                 "message": "❌ No account found. Please sign up."
             }), 404
 
-        if not bcrypt.checkpw(password.encode("utf-8"), user_row["password_hash"]):
+        stored_hash = user_row["password_hash"]
+        # Handle 3 possible storage formats:
+        # 1. Already bytes (ideal)
+        # 2. Plain bcrypt string '$2b$...'
+        # 3. Python bytes repr "b'$2b$...'" (old bug format)
+        if isinstance(stored_hash, bytes):
+            hash_bytes = stored_hash
+        elif isinstance(stored_hash, str) and stored_hash.startswith("b'"):
+            # strip the Python bytes repr artifacts
+            hash_bytes = stored_hash[2:-1].encode("utf-8")
+        else:
+            hash_bytes = stored_hash.encode("utf-8")
+
+        try:
+            pw_ok = bcrypt.checkpw(password.encode("utf-8"), hash_bytes)
+        except Exception:
+            pw_ok = False
+
+        if not pw_ok:
             return jsonify({
                 "success": False,
                 "message": "❌ Invalid password."
@@ -109,6 +127,8 @@ def login():
 
         user_data = dict(user_row)
         user_data.pop("password_hash", None)
+        # Map premium_plan string → is_premium boolean for frontend compatibility
+        user_data["is_premium"] = user_data.get("premium_plan", "free") != "free"
 
         return jsonify({
             "success": True,

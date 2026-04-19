@@ -1,0 +1,18 @@
+
+--- 2026-03-22 14:31:39.928074 ---
+❌ Chat Error: unconverted data remains:  10:12:54.463189
+Traceback (most recent call last):
+  File "C:\Users\Prabhat singh\Downloads\Best_Project\backend\app.py", line 577, in chat
+    update_retention_data(user_id, mood)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\Prabhat singh\Downloads\Best_Project\backend\app.py", line 394, in update_retention_data
+    last_login_date = datetime.strptime(last_login, '%Y-%m-%d').date()
+                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Prabhat singh\AppData\Local\Programs\Python\Python313\Lib\_strptime.py", line 789, in _strptime_datetime
+    tt, fraction, gmtoff_fraction = _strptime(data_string, format)
+                                    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Prabhat singh\AppData\Local\Programs\Python\Python313\Lib\_strptime.py", line 558, in _strptime
+    raise ValueError("unconverted data remains: %s" %
+                      data_string[found.end():])
+ValueError: unconverted data remains:  10:12:54.463189
+

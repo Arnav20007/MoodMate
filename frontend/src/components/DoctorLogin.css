@@ -1,0 +1,274 @@
+/* ================================================================
+   DOCTOR LOGIN CSS — Premium Healthcare Portal
+   Separate from the patient app. Calm, trustworthy, professional.
+   ================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.dl-page {
+  min-height: 100vh;
+  display: flex;
+  font-family: 'Inter', sans-serif;
+  background: #f0f4ff;
+}
+
+/* ── Left panel — branding ── */
+.dl-left {
+  width: 45%;
+  background: linear-gradient(160deg, #1e1b4b 0%, #312e81 40%, #4f46e5 75%, #7c3aed 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  position: relative;
+  overflow: hidden;
+}
+.dl-left::before {
+  content: '';
+  position: absolute;
+  width: 500px; height: 500px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  top: -200px; right: -150px;
+  pointer-events: none;
+}
+.dl-left::after {
+  content: '';
+  position: absolute;
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+  bottom: -100px; left: -80px;
+  pointer-events: none;
+}
+
+.dl-brand {
+  position: relative; z-index: 1;
+}
+.dl-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 48px;
+}
+.dl-brand-icon {
+  width: 44px; height: 44px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.dl-brand-name { font-size: 20px; font-weight: 900; color: white; }
+.dl-brand-tag { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.dl-headline {
+  position: relative; z-index: 1;
+}
+.dl-headline h1 {
+  font-size: 38px; font-weight: 900;
+  color: white; line-height: 1.2;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+.dl-headline h1 span { color: #a5b4fc; }
+.dl-headline p {
+  font-size: 15px; color: rgba(255,255,255,0.65);
+  line-height: 1.7; max-width: 420px;
+}
+
+.dl-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative; z-index: 1;
+}
+.dl-feature {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 14px 18px;
+  border-radius: 14px;
+}
+.dl-feature-icon {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.dl-feature-text h4 { font-size: 13px; font-weight: 700; color: white; margin-bottom: 2px; }
+.dl-feature-text p  { font-size: 12px; color: rgba(255,255,255,0.55); }
+
+.dl-footer-note {
+  font-size: 12px; color: rgba(255,255,255,0.35);
+  position: relative; z-index: 1;
+}
+
+/* ── Right panel — login form ── */
+.dl-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+.dl-form-card {
+  width: 100%;
+  max-width: 440px;
+  animation: dlUp 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes dlUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.dl-form-header { margin-bottom: 32px; }
+.dl-portal-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #ede9fe; color: #7c3aed;
+  font-size: 12px; font-weight: 700;
+  padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 18px;
+  border: 1px solid #c4b5fd;
+}
+.dl-form-header h2 {
+  font-size: 28px; font-weight: 900; color: #1e1b4b;
+  margin-bottom: 6px; letter-spacing: -0.5px;
+}
+.dl-form-header p { font-size: 14px; color: #6b7280; }
+
+.dl-form { display: flex; flex-direction: column; gap: 18px; }
+
+.dl-field { display: flex; flex-direction: column; gap: 7px; }
+.dl-field label {
+  font-size: 12px; font-weight: 700; color: #374151;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.dl-input-wrap { position: relative; }
+.dl-input-icon {
+  position: absolute; left: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px; pointer-events: none;
+}
+.dl-input {
+  width: 100%;
+  padding: 13px 14px 13px 42px;
+  border: 2px solid #e0e7ff;
+  border-radius: 14px;
+  font-size: 14.5px;
+  font-family: 'Inter', sans-serif;
+  color: #1e1b4b;
+  background: white;
+  transition: all 0.2s;
+}
+.dl-input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 4px rgba(139,92,246,0.12);
+}
+.dl-input::placeholder { color: #9ca3af; }
+
+/* Doctor selector pills */
+.dl-doctor-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.dl-doc-pill {
+  padding: 12px 14px;
+  border: 2px solid #e0e7ff;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.dl-doc-pill:hover { border-color: #c4b5fd; background: #faf5ff; }
+.dl-doc-pill.selected {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+}
+.dl-doc-pill .name { font-size: 13px; font-weight: 700; color: #1e1b4b; display: block; margin-bottom: 2px; }
+.dl-doc-pill .spec { font-size: 11px; color: #7c3aed; }
+
+.dl-row { display: flex; justify-content: flex-end; }
+.dl-forgot { font-size: 13px; color: #7c3aed; font-weight: 600; background: none; border: none; cursor: pointer; }
+
+.dl-submit {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(79,70,229,0.3);
+  transition: all 0.2s;
+  margin-top: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.dl-submit::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.12) 100%);
+}
+.dl-submit:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(79,70,229,0.4); }
+.dl-submit:active { transform: translateY(0); }
+.dl-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+.dl-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: dlShake 0.3s ease;
+}
+@keyframes dlShake {
+  0%,100% { transform: translateX(0); }
+  25%      { transform: translateX(-6px); }
+  75%      { transform: translateX(6px); }
+}
+
+.dl-back {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+.dl-back a {
+  color: #4f46e5;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.dl-back a:hover { text-decoration: underline; }
+
+.dl-divider {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 12px; color: #d1d5db;
+}
+.dl-divider::before, .dl-divider::after {
+  content: ''; flex: 1;
+  height: 1px; background: #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .dl-page { flex-direction: column; }
+  .dl-left { width: 100%; padding: 28px; }
+  .dl-headline h1 { font-size: 26px; }
+  .dl-features { display: none; }
+  .dl-right { padding: 24px; }
+}

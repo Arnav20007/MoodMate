@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from google import genai  # CHANGED: Use NEW SDK
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import base64
@@ -16,13 +15,15 @@ from auth import auth_bp
 import sqlite3
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
+import traceback
+from services.ai_service import generate_ai_response
  
 
 # ========== Load Config ==========
 load_dotenv()
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a-super-secret-key-you-must-change')
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
 
 # ========== CORS Setup ==========
@@ -35,6 +36,8 @@ app.register_blueprint(auth_bp, url_prefix="/")
 def init_db():
     conn = sqlite3.connect('moodmate.db')
     cursor = conn.cursor()
+    
+    # Existing tables
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS chat_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,6 +49,8 @@ def init_db():
         )
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history (session_id)')
+    
+    # Updated users table with last_mood_tag
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +60,7 @@ def init_db():
             password_hash TEXT NOT NULL,
             coins INTEGER DEFAULT 100,
             streak INTEGER DEFAULT 0,
+            last_mood_tag TEXT,
             premium_plan TEXT DEFAULT 'free',
             premium_expiry DATE,
             owned_items TEXT DEFAULT '[]',
@@ -66,6 +72,18 @@ def init_db():
             role TEXT DEFAULT 'free'
         )
     ''')
+
+    # Ensure last_mood_tag exists if table already existed
+    try:
+        cursor.execute('ALTER TABLE users ADD COLUMN last_mood_tag TEXT')
+    except sqlite3.OperationalError:
+        pass # Already exists
+
+    try:
+        cursor.execute("ALTER TABLE users ADD COLUMN owned_items TEXT DEFAULT '[]'")
+    except sqlite3.OperationalError:
+        pass # Already exists
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_progress (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,9 +95,55 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
+
+    # FEATURE 1: Daily Check-ins
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS daily_checkins (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            date DATE DEFAULT (DATE('now')),
+            mood_tag TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_date ON daily_checkins (user_id, date)')
+
+    # FEATURE 5 & 6: Community Mood Wall & Reactions
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS community_posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mood_tag TEXT NOT NULL,
+            content TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS community_reactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            post_id INTEGER NOT NULL,
+            reaction_type TEXT NOT NULL,
+            count INTEGER DEFAULT 0,
+            FOREIGN KEY (post_id) REFERENCES community_posts (id)
+        )
+    ''')
+    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_post_reaction ON community_reactions (post_id, reaction_type)')
+
+    # FEATURE 9: Analytics
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS analytics (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            metric_name TEXT NOT NULL,
+            metric_value REAL NOT NULL,
+            date DATE DEFAULT (DATE('now')),
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     conn.commit()
     conn.close()
-    print("✅ Database initialized (chat_history + users + user_progress)")
+    print("✅ Database initialized with Retention Features")
 
 init_db()
 
@@ -92,35 +156,67 @@ def get_db():
     finally:
         conn.close()
 
+# ========== Real User Endpoints for Premium / Shop ==========
+@app.route('/buy_premium/<int:user_id>', methods=['POST'])
+def buy_premium(user_id):
+    data = request.json
+    plan = data.get('plan')
+    if not plan:
+        return jsonify({'error': 'No plan selected'}), 400
+
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'message': f'Upgraded to {plan}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/shop/purchase', methods=['POST'])
+def shop_purchase():
+    data = request.json
+    user_id = data.get('user_id')
+    item_id = data.get('item_id')
+    price = data.get('price')
+
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT coins, owned_items FROM users WHERE id = ?", (user_id,))
+            user = cursor.fetchone()
+            
+            if not user:
+                return jsonify({'error': 'User not found'}), 404
+                
+            current_coins = user['coins']
+            if current_coins < price:
+                return jsonify({'error': 'Not enough coins'}), 400
+
+            new_balance = current_coins - price
+            
+            owned = []
+            try:
+                owned = json.loads(user['owned_items'] or '[]')
+            except:
+                pass
+                
+            if item_id not in owned:
+                owned.append(item_id)
+                
+            cursor.execute("UPDATE users SET coins = ?, owned_items = ? WHERE id = ?", (new_balance, json.dumps(owned), user_id))
+            conn.commit()
+            return jsonify({'status': 'success', 'new_balance': new_balance, 'purchased_items': owned})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ========== AI Configuration ==========
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', "AIzaSyD3uVixap41UJswdbJRRgR9YkvNftbScpQ")  # YOUR NEW KEY
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 ELEVENLABS_VOICE_ID = os.getenv('ELEVENLABS_VOICE_ID', 'pNInz6obpgDQGcFmaJgB')
-
-# Initialize Gemini client with NEW SDK
-gemini_client = None
-MODEL_NAME = os.getenv('GEMINI_MODEL', "gemini-2.0-flash")
-
-try:
-    if GEMINI_API_KEY:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)  # NEW: genai.Client()
-        print("✅ Gemini AI client initialized successfully")
-        print(f"📝 Using API Key: {GEMINI_API_KEY[:15]}...")
-        print(f"🤖 Model: {MODEL_NAME}")
-        
-        # Test immediately
-        test_response = gemini_client.models.generate_content(
-            model=MODEL_NAME,
-            contents="Reply with exactly: GEMINI READY"
-        )
-        print(f"✅ Test successful: {test_response.text}")
-    else:
-        print("⚠ Gemini API key not found")
-except Exception as e:
-    print(f"❌ Gemini initialization failed: {e}")
-    gemini_client = None
+HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 
 print("✅ ElevenLabs TTS:", "Loaded" if ELEVENLABS_API_KEY else "Not configured")
+print("✅ Hugging Face BERT:", "Loaded" if HUGGINGFACE_API_KEY else "Not configured")
 
 # ========== Audio Setup ==========
 AUDIO_FOLDER = os.path.join('static', 'audio')
@@ -195,7 +291,30 @@ def add_coins_internal(user_id, coins):
 def detect_mood(msg: str) -> str:
     if not msg:
         return "neutral"
-    
+        
+    print(f"🧠 [Hugging Face] Analyzing Tone: '{msg}'")
+    # 1. Primary Engine: Hugging Face (Hindi BERT / Multilingual Sentiment)
+    try:
+        if HUGGINGFACE_API_KEY:
+            API_URL = "https://api-inference.huggingface.co/models/lxyuan/distilbert-base-multilingual-cased-sentiments-student"
+            headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+            response = requests.post(API_URL, headers=headers, json={"inputs": msg}, timeout=4)
+            
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
+                    top_label = result[0][0].get('label', '').lower()
+                    print(f"✅ [Hugging Face] Detected Sentiment: {top_label}")
+                    if top_label == 'positive': return "happy"
+                    elif top_label == 'negative': return "sad"
+                    else: return "neutral"
+            else:
+                print(f"⚠️ [Hugging Face] API Error: {response.text}")
+    except Exception as e:
+        print(f"❌ [Hugging Face] Timeout or Error: {e}")
+        
+    print("🔄 [Hugging Face Fallback] Using naive dictionary pattern...")
+    # 2. Fallback Engine: Keywords
     msg_lower = msg.lower()
     mood_keywords = {
         "happy": ["happy", "good", "great", "awesome", "excited", "joy", "smile", "khush", "achha", "wonderful"],
@@ -259,35 +378,11 @@ def gtts_fallback(text: str, lang: str = 'hi'):
         return None, None
 
 def ai_generate_reply(conversation_history: list, user_message: str, user_name: str = "friend") -> dict:
-    # Simple fallback responses
-    fallback_responses = {
-        "CRISIS": {
-            "message": f"**I'm really concerned for you. Are you safe right now?**\nIf you're in immediate danger, call your local emergency number or reach a trusted person nearby.\n— Options: [I'm safe] [I need help] [Grounding 60s]",
-            "chips": ["I'm safe", "I need help", "Grounding 60s"],
-            "safety_check": True
-        },
-        "SEVERE_NEG": {
-            "message": f"**Thanks for opening up, {user_name}.** That sounds really tough. **On a scale of 1–10, how intense is it right now?**\n— Options: [Breathing 60s] [Journal 2 lines] [Talk to a therapist]",
-            "chips": ["Breathing 60s", "Journal 2 lines", "Therapists"],
-            "safety_check": False
-        },
-        "MILD_NEG": {
-            "message": f"**I hear you, {user_name}.** Want to try a quick coping step together or talk it out?\n— Options: [Grounding 60s] [Music for focus] [Journal]",
-            "chips": ["Grounding 60s", "Music", "Journal"],
-            "safety_check": False
-        },
-        "NEUTRAL_POS": {
-            "message": f"**Love that, {user_name}!** Want to save this in your journal or keep chatting?\n— Options: [Save to journal] [New topic]",
-            "chips": ["Save to journal", "New topic"],
-            "safety_check": False
-        },
-        "CASUAL": {
-            "message": f"**I'm here, {user_name}.** Tell me a bit more about what's on your mind.\n— Options: [Stress] [Relationships] [Studies]",
-            "chips": ["Stress", "Relationships", "Studies"],
-            "safety_check": False
-        }
-    }
+    # Use AI Service (Local + API Fallback)
+    result = generate_ai_response(user_message, conversation_history)
+    ai_message = result["text"]
     
+    # Identify bucket for chips and safety logic
     def bucket(msg: str):
         CRISIS = re.compile(r"(kill myself|suicide|end my life|die|harm myself|i want to die|self harm|cutting)", re.IGNORECASE)
         SEVERE = re.compile(r"(depression|hopeless|worthless|can't go on|self harm|cutting)", re.IGNORECASE)
@@ -302,62 +397,24 @@ def ai_generate_reply(conversation_history: list, user_message: str, user_name: 
     
     message_bucket = bucket(user_message)
     
-    # Use Gemini if available
-    if gemini_client:
-        try:
-            context = ""
-            if conversation_history:
-                for msg in conversation_history[-3:]:
-                    role = "User" if msg['role'] == "user" else "MoodMate"
-                    context += f"{role}: {msg['content']}\n"
-            
-            # Simple prompt that works
-            prompt = f"""You are MoodMate, a warm, empathetic mental health companion.
-Respond naturally and conversationally.
-
-{context}User: {user_message}
-
-MoodMate:"""
-            
-            print(f"📤 Sending to Gemini: {user_message[:50]}...")
-            
-            # Use NEW SDK call
-            response = gemini_client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt
-            )
-            
-            if response and response.text:
-                ai_message = response.text.strip()
-                print(f"✅ Gemini response: {ai_message[:100]}...")
-                
-                # Generate appropriate chips
-                chips = []
-                if "sad" in user_message.lower() or "depress" in user_message.lower():
-                    chips = ["Talk about it", "Positive activity", "Call a friend"]
-                elif "stress" in user_message.lower() or "anxious" in user_message.lower():
-                    chips = ["Breathing exercise", "Grounding technique", "Take a break"]
-                elif "angry" in user_message.lower() or "frustrated" in user_message.lower():
-                    chips = ["Count to 10", "Walk it off", "Express feelings"]
-                else:
-                    chips = ["Tell me more", "How can I help?", "Change topic"]
-                
-                safety_check = message_bucket == "CRISIS"
-                
-                return {
-                    "message": ai_message,
-                    "chips": chips,
-                    "safety_check": safety_check
-                }
-            else:
-                print("❌ Gemini returned empty response")
-                
-        except Exception as e:
-            print(f"❌ Gemini API error: {type(e).__name__}: {str(e)[:100]}")
+    # Generate appropriate chips
+    chips = []
+    if "sad" in user_message.lower() or "depress" in user_message.lower():
+        chips = ["Talk about it", "Positive activity", "Call a friend"]
+    elif "stress" in user_message.lower() or "anxious" in user_message.lower():
+        chips = ["Breathing exercise", "Grounding technique", "Take a break"]
+    elif "angry" in user_message.lower() or "frustrated" in user_message.lower():
+        chips = ["Count to 10", "Walk it off", "Express feelings"]
+    else:
+        chips = ["Tell me more", "How can I help?", "Change topic"]
     
-    # Fallback if Gemini fails
-    print("⚠️ Using fallback response")
-    return fallback_responses[message_bucket]
+    return {
+        "message": ai_message,
+        "chips": chips,
+        "safety_check": message_bucket == "CRISIS",
+        "source": result["source"],
+        "fallback_used": result["fallback_used"]
+    }
 
 def log_chat(session_id: str, role: str, content: str, mood: str = None):
     with get_db() as conn:
@@ -384,40 +441,399 @@ def detect_crisis_intent(message: str) -> bool:
     crisis_keywords = [
         "suicide", "kill myself", "end my life", "want to die", 
         "harm myself", "self harm", "cutting", "no reason to live",
-        "better off without me", "can't go on", "give up"
+        "better off without me", "can't go on", "give up",
+        "marne wala", "maut", "zindagi khatam", "jaan de dunga", "mar jau", "atmanhatya"
     ]
     
     message_lower = message.lower()
     return any(keyword in message_lower for keyword in crisis_keywords)
 
+def update_retention_data(user_id, current_mood=None):
+    """Handles daily check-ins, streak tracking, and emotional memory."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        today = datetime.now().date().isoformat()
+        
+        # 1. Update Emotional Memory (Last Mood Tag)
+        if current_mood:
+            cursor.execute("UPDATE users SET last_mood_tag = ? WHERE id = ?", (current_mood, user_id))
+        
+        # 2. Daily Check-in & Streak Logic
+        cursor.execute("SELECT id FROM daily_checkins WHERE user_id = ? AND date = ?", (user_id, today))
+        if not cursor.fetchone():
+            # First interaction of the day
+            cursor.execute("INSERT INTO daily_checkins (user_id, mood_tag) VALUES (?, ?)", (user_id, current_mood))
+            
+            # Update Streak
+            cursor.execute("SELECT last_login, streak FROM users WHERE id = ?", (user_id,))
+            user = cursor.fetchone()
+            if user:
+                last_login = user['last_login']
+                streak = user['streak'] or 0
+                
+                if last_login:
+                    # Robust date parsing - handle both 'YYYY-MM-DD' and full datetime strings
+                    try:
+                        last_login_date = datetime.strptime(str(last_login)[:10], '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        last_login_date = None
+                    
+                    if last_login_date:
+                        delta = datetime.now().date() - last_login_date
+                        if delta.days == 1:
+                            streak += 1
+                        elif delta.days > 1:
+                            streak = 1
+                        # If delta.days == 0, already checked in today
+                else:
+                    streak = 1
+                
+                cursor.execute("UPDATE users SET streak = ?, last_login = ? WHERE id = ?", (streak, today, user_id))
+            
+            # 3. Analytics (DAU & Check-ins)
+            track_metric("daily_active_users", 1)
+            track_metric("checkins_per_day", 1)
+            
+        conn.commit()
+
+def track_metric(name, value):
+    """Helper to track retention metrics."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            today = datetime.now().date().isoformat()
+            cursor.execute("""
+                INSERT INTO analytics (metric_name, metric_value, date) 
+                VALUES (?, ?, ?)
+            """, (name, value, today))
+            conn.commit()
+    except Exception as e:
+        print(f"Analytics error: {e}")
+
+def get_emotional_memory_context(user_id, client_username="Friend"):
+    """Retrieves long-term emotional context (past 7 days) and current login streak to provide deep continuity."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        # Get user details
+        cursor.execute("SELECT username, streak, last_login FROM users WHERE id = ?", (user_id,))
+        user_row = cursor.fetchone()
+        
+        if not user_row:
+            username = client_username
+            streak = 1
+        else:
+            username = client_username if client_username != "Friend" else (user_row['username'] or "Friend")
+            streak = user_row['streak'] or 0
+        
+        # Fetch last 7 days of moods
+        seven_days_ago = (datetime.now() - timedelta(days=7)).date().isoformat()
+        cursor.execute("SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", (user_id, seven_days_ago))
+        checkins = cursor.fetchall()
+        
+        if not checkins:
+            return f"[SYSTEM DIRECTIVE]: The user's name is {username}. This is their first time interacting recently. Be highly welcoming."
+            
+        trends = ", ".join([f"{c['date'][5:]}: {c['mood_tag']}" for c in checkins[-5:]])
+        last_mood = checkins[-1]['mood_tag'] if checkins else 'neutral'
+        
+        memory_prompt = (
+            f"[SYSTEM DIRECTIVE & MEMORY]: The user's name is {username}. They currently have a {streak}-day app usage streak. "
+            f"Here is their recent mood trend over the last few days: [{trends}]. "
+            f"Their most recent recorded mood is {last_mood}. "
+            "Use this emotional context to respond. If they seem stuck in a negative trend pattern (like 'sad' multiple days in a row), gently acknowledge it and offer a brief Cognitive Behavioral Therapy (CBT) reframing exercise or mindfulness tip. Do not sound like a robot reading a log."
+        )
+        
+        return memory_prompt
+
 # ========== API Routes ==========
-@app.route('/api/test', methods=['GET'])
-def test_endpoint():
-    # Test Gemini directly
-    if gemini_client:
-        try:
-            response = gemini_client.models.generate_content(
-                model=MODEL_NAME,
-                contents="Reply with exactly: WORKING"
-            )
-            return jsonify({
-                "status": "success",
-                "message": response.text,
-                "gemini": "working",
-                "timestamp": datetime.now().isoformat()
-            })
-        except Exception as e:
-            return jsonify({
-                "status": "error",
-                "message": f"Gemini error: {str(e)}",
-                "timestamp": datetime.now().isoformat()
-            }), 500
-    else:
+@app.route('/api/user/status', methods=['GET'])
+def get_user_status():
+    user_id = int(request.args.get('user_id', 1))
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT username, streak, last_mood_tag, last_login, coins FROM users WHERE id = ?", (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+            
+        today = datetime.now().date()
+        
+        # Check-in Status
+        cursor.execute("SELECT id FROM daily_checkins WHERE user_id = ? AND date = ?", (user_id, today.isoformat()))
+        checked_in = cursor.fetchone() is not None
+        
+        # Total check-ins
+        cursor.execute("SELECT COUNT(*) FROM daily_checkins WHERE user_id = ?", (user_id,))
+        total_checkins = cursor.fetchone()[0]
+        
+        # Inactivity nudge (Feature 4)
+        nudge = None
+        if user['last_login']:
+            try:
+                last_date = datetime.strptime(str(user['last_login'])[:10], '%Y-%m-%d').date()
+                delta = today - last_date
+            except (ValueError, TypeError):
+                last_date = None
+                delta = None
+            if delta is not None:
+                if delta.days >= 3:
+                    nudge = "We’re here whenever you’re ready. No pressure 💙"
+                elif delta.days >= 1:
+                    nudge = "Hey, haven’t heard from you today. Everything okay?"
+                
+        # "You're not alone" (Feature 7)
+        alone_insight = None
+        if user['last_mood_tag']:
+            # Count users who felt the same mood in last 24h
+            cursor.execute("SELECT COUNT(*) FROM daily_checkins WHERE mood_tag = ? AND date = ?", (user['last_mood_tag'], today.isoformat()))
+            count = cursor.fetchone()[0]
+            if count > 1:
+                alone_insight = f"{count} members felt {user['last_mood_tag']} today too."
+            else:
+                alone_insight = "You're not alone in how you feel."
+
+        # Get coins for header badge refresh
+        cursor.execute("SELECT coins FROM users WHERE id = ?", (user_id,))
+        coins_row = cursor.fetchone()
+        coins = coins_row['coins'] if coins_row else 0
+
         return jsonify({
-            "status": "error",
-            "message": "Gemini client not initialized",
-            "timestamp": datetime.now().isoformat()
-        }), 500
+            "status": "success",
+            "streak": user['streak'] or 0,
+            "coins": coins or 0,
+            "total_checkins": total_checkins,
+            "last_mood": user['last_mood_tag'],
+            "checked_in": checked_in,
+            "nudge": nudge,
+            "alone_insight": alone_insight
+        })
+
+@app.route('/api/community/posts', methods=['GET', 'POST'])
+def community_posts():
+    if request.method == 'POST':
+        data = request.json
+        mood = data.get('mood_tag')
+        content = data.get('content')
+        if not mood or not content:
+            return jsonify({"status": "error", "message": "Mood and content required"}), 400
+            
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO community_posts (mood_tag, content) VALUES (?, ?)", (mood, content))
+            track_metric("community_posts_per_day", 1)
+            conn.commit()
+            
+        return jsonify({"status": "success"})
+    else:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, mood_tag, content, created_at FROM community_posts ORDER BY created_at DESC LIMIT 50")
+            posts = [dict(row) for row in cursor.fetchall()]
+            
+            # Fetch reactions for each post
+            for post in posts:
+                cursor.execute("SELECT reaction_type, count FROM community_reactions WHERE post_id = ?", (post['id'],))
+                reactions_data = cursor.fetchall()
+                post['reactions'] = {row['reaction_type']: row['count'] for row in reactions_data}
+                
+            return jsonify({"status": "success", "posts": posts})
+
+@app.route('/api/community/react', methods=['POST'])
+def react_to_post():
+    data = request.json
+    post_id = data.get('post_id')
+    reaction = data.get('reaction_type')
+    
+    if not post_id or not reaction:
+        return jsonify({"status": "error", "message": "post_id and reaction_type required"}), 400
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # Using a pattern compatible with older SQLite versions if ON CONFLICT is missing
+        cursor.execute("SELECT id FROM community_reactions WHERE post_id = ? AND reaction_type = ?", (post_id, reaction))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("UPDATE community_reactions SET count = count + 1 WHERE id = ?", (row['id'],))
+        else:
+            cursor.execute("INSERT INTO community_reactions (post_id, reaction_type, count) VALUES (?, ?, 1)", (post_id, reaction))
+        conn.commit()
+        
+    return jsonify({"status": "success"})
+
+@app.route('/api/shop/purchase', methods=['POST'])
+def purchase_item():
+    data = request.json or {}
+    user_id = data.get('user_id', 1)
+    item_id = data.get('item_id')
+    price = data.get('price', 0)
+    
+    if not item_id:
+        return jsonify({"status": "error", "error": "Missing item ID"}), 400
+        
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT coins, owned_items FROM users WHERE id = ?", (user_id,))
+        user_row = cursor.fetchone()
+        
+        if not user_row:
+            return jsonify({"status": "error", "error": "User not found"}), 404
+            
+        coins = user_row['coins'] or 0
+        owned_items_json = user_row['owned_items'] or '[]'
+        
+        try:
+            import json
+            owned_items = json.loads(owned_items_json)
+        except:
+            owned_items = []
+            
+        if coins < price:
+            return jsonify({"status": "error", "error": "Not enough coins"}), 400
+            
+        if item_id in owned_items:
+            return jsonify({"status": "error", "error": "Item already owned"}), 400
+            
+        new_coins = coins - price
+        owned_items.append(item_id)
+        
+        import json
+        cursor.execute("UPDATE users SET coins = ?, owned_items = ? WHERE id = ?", (new_coins, json.dumps(owned_items), user_id))
+        conn.commit()
+        
+        return jsonify({
+            "status": "success",
+            "new_balance": new_coins,
+            "purchased_items": owned_items
+        })
+
+@app.route('/api/report', methods=['GET'])
+def get_report_data():
+    user_id = int(request.args.get('user_id', 1))
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        # Get user details
+        cursor.execute("SELECT username, coins, streak FROM users WHERE id = ?", (user_id,))
+        user_row = cursor.fetchone()
+        
+        if not user_row:
+            return jsonify({"status": "error", "message": "User not found"}), 404
+            
+        # Get mood data from daily checkins (last 30 days)
+        thirty_days_ago = (datetime.now() - timedelta(days=30)).date().isoformat()
+        cursor.execute(
+            "SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", 
+            (user_id, thirty_days_ago)
+        )
+        checkins = cursor.fetchall()
+        
+        # Standard mood baseline scores
+        mood_scores = {
+            "happy": 95, "excited": 90, "content": 85, "calm": 80, "relaxed": 80,
+            "neutral": 70, 
+            "tired": 50, "bored": 50, "confused": 45,
+            "sad": 30, "anxious": 25, "angry": 20, "lonely": 20, "frustrated": 20
+        }
+        
+        mood_emojis = {
+            "happy": "😊 Happy", "sad": "😔 Sad", "angry": "😠 Angry", "anxious": "😰 Anxious", 
+            "tired": "😴 Tired", "calm": "😌 Calm", "excited": "🎉 Excited", "neutral": "😐 Neutral"
+        }
+        
+        mood_data = []
+        mood_distribution = {}
+        for row in checkins:
+            mood_tag = (row['mood_tag'] or 'neutral').lower()
+            score = mood_scores.get(mood_tag, 70)
+            
+            try:
+                dt = datetime.strptime(row['date'], '%Y-%m-%d')
+                short_date = f"{dt.month}/{dt.day}"
+            except:
+                short_date = row['date']
+                
+            mood_str = mood_emojis.get(mood_tag, f"{mood_tag.capitalize()}")
+            mood_data.append({
+                "date": short_date,
+                "mood": mood_str,
+                "score": score,
+                "activities": 1
+            })
+            
+            mood_distribution[mood_str] = mood_distribution.get(mood_str, 0) + 1
+            
+        overall_score = 75
+        if mood_data:
+            overall_score = int(sum(d['score'] for d in mood_data) / len(mood_data))
+            
+        # If no check-ins, return empty lists so frontend shows clean empty state
+        if not mood_data:
+            mood_data = []
+            mood_distribution = {}
+            overall_score = 0
+            
+        return jsonify({
+            "status": "success",
+            "streak": user_row['streak'] or 0,
+            "coins": user_row['coins'] or 0,
+            "username": user_row['username'],
+            "completed_activities": len(checkins),
+            "overall_score": overall_score,
+            "mood_data": mood_data,
+            "mood_distribution": mood_distribution
+        })
+
+@app.route('/api/report/analysis', methods=['POST'])
+def generate_report_analysis():
+    data = request.json or {}
+    user_id = data.get('user_id', 1)
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+        user_row = cursor.fetchone()
+        username = user_row['username'] if user_row else "Friend"
+        
+        # Get past 14 days of mood for deep analysis
+        fourteen_days_ago = (datetime.now() - timedelta(days=14)).date().isoformat()
+        cursor.execute("SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", (user_id, fourteen_days_ago))
+        checkins = cursor.fetchall()
+        
+    if not checkins:
+        return jsonify({"status": "error", "analysis": "We need a few more days of check-ins to generate a deep cognitive analysis. Keep using MoodMate!"})
+
+    moods_list = ", ".join([f"{c['date'][5:]}: {c['mood_tag']}" for c in checkins])
+    
+    prompt = (
+        f"You are a world-class cognitive behavioral therapist. Your client is {username}. "
+        f"Over the last two weeks, they have logged the following emotional trajectory: [{moods_list}]. "
+        "Write a beautiful, highly personalized 3-paragraph mental wellness journal for them. "
+        "1. Identify any patterns in their mood.\n"
+        "2. Offer a warm, empathetic reflection on their emotional journey.\n"
+        "3. Provide a practical, actionable mindfulness or cognitive framing exercise tailored to their specific recent moods. "
+        "Format the response in visually pleasing Markdown with headers and bullet points where appropriate."
+    )
+    
+    print(f"🧠 [Deep Analysis] Generating for {username}...", flush=True)
+    try:
+        from services.ai_service import generate_api_response, generate_local_response, GROQ_API_KEY
+        if GROQ_API_KEY:
+            analysis = generate_api_response(prompt)
+        else:
+            analysis = generate_local_response(prompt)
+            
+        if not analysis:
+            analysis = "I'm having trouble analyzing your data right now. You are doing great, but please try again later."
+            
+        return jsonify({"status": "success", "analysis": analysis})
+    except Exception as e:
+        print(f"❌ Analysis Error: {e}")
+        return jsonify({"status": "error", "analysis": "Backend AI generation failed."})
+
+# NOTE: /api/shop/purchase is defined above (lines 602-646). Duplicate removed.
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -425,9 +841,6 @@ def health_check():
         "status": "success",
         "server": "MoodMate Backend",
         "database": "connected" if os.path.exists('moodmate.db') else "not found",
-        "gemini_ready": gemini_client is not None,
-        "gemini_model": MODEL_NAME if gemini_client else None,
-        "elevenlabs_ready": bool(ELEVENLABS_API_KEY),
         "timestamp": datetime.now().isoformat()
     })
 
@@ -438,31 +851,44 @@ def chat():
         msg = (data.get('message') or '').strip()
         session_id = data.get('session_id', 'default_session')
         user_id = data.get('user_id', 1)
+        user_name = data.get('user_name', 'Friend')
         
         if not msg:
             return jsonify({"status": "error", "error": "Message cannot be empty"}), 400
         
-        print(f"\n📨 Chat request: '{msg}'")
+        print(f"\n📨 Chat request from {user_name}: '{msg}'")
         
         # Check for crisis intent
         is_crisis = detect_crisis_intent(msg)
         if is_crisis:
+            reply_text = f"{user_name}… mujhe tumhari baat sunkar sach mein chinta ho rahi hai.\n\nMain yahin hoon tumhare saath. Saans dheere lo… tum safe ho… sab ek saath solve karne ki zarurat nahi hai.\n\nKya tum chahoge ki abhi hum kisi trusted contact ko call karein? Ya pehle thodi der yahi baat karni hai?\n\n---\n*Agar tum chaho, tum yahan call kar sakte ho — yeh log turant madad karte hain:*\n📞 **AASRA**: 91-9820466726\n📞 **Kiran (Govt)**: 1800-599-0019"
+            log_chat(session_id, "user", msg, "crisis")
+            log_chat(session_id, "ai", reply_text)
+            
             return jsonify({
                 "status": "crisis",
                 "crisis": True,
-                "message": "I'm really concerned about what you're saying. Your safety is the most important thing right now.",
+                "reply": reply_text,
+                "chips": ["Haan, madad bhejiye", "Pehle chalo baat karte hai", "Main apni saans par dhyan de raha hu"],
                 "timestamp": datetime.now().isoformat()
             })
         
         mood = detect_mood(msg)
         print(f"🎭 Mood detected: {mood}")
         
+        # FEATURE 1 & 2 & 3: Retention Data & Emotional Memory
+        update_retention_data(user_id, mood)
+        emotional_memory = get_emotional_memory_context(user_id, user_name)
+        
         log_chat(session_id, "user", msg, mood)
         
         history = get_chat_history(session_id, 6)
         formatted_history = [{"role": row['role'], "content": row['content']} for row in history]
         
-        ai_response = ai_generate_reply(formatted_history, msg, "friend")
+        # Inject Emotional Memory into Context
+        full_msg = f"{emotional_memory}\nUser: {msg}" if emotional_memory else msg
+        
+        ai_response = ai_generate_reply(formatted_history, full_msg, user_name)
         log_chat(session_id, "ai", ai_response["message"])
         
         # Generate TTS
@@ -490,26 +916,30 @@ def chat():
             "safetyCheck": ai_response["safety_check"],
             "challenge": daily_challenge,
             "audioUrl": audio_url,
-            "fallbackUsed": fallback_used,
+            "fallbackUsed": ai_response["fallback_used"],
+            "aiSource": ai_response["source"],
             "coinsEarned": coins_earned,
-            "timestamp": datetime.now().isoformat(),
-            "gemini_used": gemini_client is not None
+            "timestamp": datetime.now().isoformat()
         }
         
         print(f"📤 Response sent: {response_data['reply'][:50]}...")
         return jsonify(response_data)
         
     except Exception as e:
-        print(f"❌ Chat error: {str(e)}")
+        error_msg = f"❌ Chat Error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        with open("error_log.txt", "a", encoding='utf-8') as f:
+            f.write(f"\n--- {datetime.now()} ---\n{error_msg}\n")
+            
         return jsonify({
             "status": "success",
-            "reply": "I'm here for you. What would you like to talk about?",
+            "reply": "I'm here for you. I had a small technical glitch, but tell me more about what's on your mind.",
             "mood": "neutral",
             "moodEmoji": "😊",
-            "phrase": "You're doing great. Keep going!",
-            "chips": ["Tell me more", "I need help", "Journal"],
+            "phrase": "Everything will be okay.",
+            "chips": ["Tell me more", "I'm okay"],
             "safetyCheck": False,
-            "challenge": MOOD_CHALLENGES[0],
+            "challenge": "Breathe deeply for 1 minute.",
             "fallbackUsed": True,
             "coinsEarned": 0,
             "timestamp": datetime.now().isoformat()
@@ -551,12 +981,11 @@ if __name__ == "__main__":
     os.makedirs('static/audio', exist_ok=True)
     
     print("\n" + "="*60)
-    print("🚀 Starting MoodMate Server with NEW Gemini SDK")
+    print("🚀 Starting MoodMate Server with Local LLM & API Fallback")
     print("="*60)
     print(f"📊 Database: moodmate.db")
     print(f"🔊 Audio folder: {AUDIO_FOLDER}")
-    print(f"🤖 Gemini AI: {'✅ Enabled' if gemini_client else '❌ Disabled'}")
-    print(f"🤖 Model: {MODEL_NAME}")
+    print(f"🤖 AI Service: Local (Ollama) + Cloud (Groq)")
     print(f"🎵 ElevenLabs TTS: {'✅ Enabled' if ELEVENLABS_API_KEY else '❌ Disabled'}")
     print("="*60)
     

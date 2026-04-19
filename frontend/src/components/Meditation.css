@@ -1,0 +1,222 @@
+/* Meditation.css - Immersive UI */
+
+.meditation-container {
+    padding: 30px;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.med-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.med-header h2 {
+    font-size: 38px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.med-header p { color: #6b7280; font-size: 18px; }
+
+.med-filter-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.med-filter-btn {
+    padding: 10px 24px;
+    border-radius: 30px;
+    border: none;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.med-filter-btn:hover { background: #e2e8f0; transform: translateY(-2px); }
+
+.med-filter-btn.active {
+    background: #3B82F6;
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.med-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.med-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    transition: all 0.4s;
+    border: 1px solid #f1f5f9;
+}
+
+.med-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    border-color: rgba(0,0,0,0.1);
+}
+
+.med-card-top {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.med-card-emoji { font-size: 48px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); }
+
+.med-card-cat {
+    position: absolute;
+    top: 15px; right: 15px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.med-card-body { padding: 25px; }
+
+.med-card-body h3 { font-size: 20px; font-weight: 800; color: #1e293b; margin-bottom: 10px; }
+.med-card-body p { font-size: 14px; color: #64748b; margin-bottom: 25px; line-height: 1.5; }
+
+.med-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.med-duration { font-size: 14px; font-weight: 600; color: #94a3b8; }
+
+.med-play-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.med-play-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+
+/* --- FULLSCREEN PLAYER --- */
+.med-fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.med-back-btn {
+    position: absolute;
+    top: 30px; left: 30px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+}
+
+.med-back-btn:hover { background: rgba(255,255,255,0.2); transform: translateX(-5px); }
+
+.med-session-box {
+    background: rgba(0,0,0,0.3);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 50px;
+    border-radius: 30px;
+    text-align: center;
+    max-width: 600px;
+    width: 90%;
+    animation: scaleIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes scaleIn { from{opacity:0; transform:scale(0.8);} to{opacity:1; transform:scale(1);} }
+
+.med-session-emoji { font-size: 80px; margin-bottom: 20px; animation: floatItem 4s ease-in-out infinite alternate; }
+
+.med-session-title { color: white; font-size: 32px; font-weight: 800; margin-bottom: 30px; }
+
+.med-script-line { min-height: 100px; display: flex; align-items: center; justify-content: center; margin-bottom: 40px; }
+
+.med-script-text {
+    color: rgba(255,255,255,0.9);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.6;
+    animation: fadeIn 1s ease-out;
+}
+
+.med-timer-ring {
+    position: relative;
+    width: 120px; height: 120px;
+    margin: 0 auto 30px;
+}
+
+.med-timer-ring svg { width: 100%; height: 100%; transition: stroke-dasharray 1s linear; }
+
+.med-timer-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.med-script-dots { display: flex; gap: 8px; justify-content: center; }
+
+.med-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.4s;
+}
+
+.med-dot.done { background: rgba(255,255,255,0.5); }
+.med-dot.active { background: white; transform: scale(1.5); }
+
+/* --- DONE SCREEN --- */
+.med-done-card {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 60px 40px;
+    border-radius: 30px;
+    text-align: center;
+    max-width: 500px;
+    color: white;
+}
+
+.med-done-emoji { font-size: 80px; margin-bottom: 20px; }
+.med-done-card h2 { font-size: 36px; font-weight: 800; margin-bottom: 10px; }
+.med-done-card h3 { font-size: 24px; font-weight: 600; margin-bottom: 20px; color: rgba(255,255,255,0.8); }
+.med-done-card p { line-height: 1.6; font-size: 16px; margin-bottom: 30px; }
+.med-btn-primary { background: white; color: #1e293b; border: none; padding: 15px 30px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+.med-btn-primary:hover { transform: scale(1.05); }

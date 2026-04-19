@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './Shop.css';
 const API_BASE_URL = 'http://127.0.0.1:5000';
 
 // Placed here for demonstration
@@ -37,32 +38,40 @@ function Shop({ user, onUpdateUser }) {
     const [shopItems, setShopItems] = useState(sampleShopItems);
     const [activeShopCategory, setActiveShopCategory] = useState("All");
     
+    const showToast = (msg, color = '#10b981') => {
+        const t = document.createElement('div');
+        t.innerHTML = `<span>${msg}</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
+        t.style.cssText = `display:flex;align-items:center;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:${color};color:white;padding:12px 24px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.2);font-family:Inter,sans-serif;white-space:nowrap`;
+        t.querySelector('button').onclick = () => { if (document.body.contains(t)) t.remove(); };
+        document.body.appendChild(t);
+        setTimeout(() => { if (document.body.contains(t)) t.remove(); }, 3500);
+    };
+
     const buyItem = async (item) => {
         if (user.coins < item.price) {
-            alert("Not enough coins!");
+            showToast("⚠️ Not enough coins for this item!", '#ef4444');
             return;
         }
-        if (window.confirm(`Buy ${item.name} for ${item.price} coins?`)) {
-             try {
-                const response = await fetch(`${API_BASE_URL}/api/shop/purchase`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ item_id: item.id, price: item.price })
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/shop/purchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ item_id: item.id, price: item.price, user_id: user?.id || 1 })
+            });
+            const data = await response.json();
+            if (response.ok) {
+                onUpdateUser({ 
+                    coins: data.new_balance, 
+                    purchasedItems: data.purchased_items 
                 });
-                const data = await response.json();
-                if (response.ok) {
-                    onUpdateUser({ 
-                        coins: data.new_balance, 
-                        purchasedItems: data.purchased_items 
-                    });
-                    alert(`Successfully purchased ${item.name}!`);
-                } else {
-                    alert(`Purchase failed: ${data.error}`);
-                }
-            } catch (error) {
-                alert("An error occurred during purchase.");
+                showToast(`🛍️ Successfully purchased ${item.name}!`, '#10b981');
+            } else {
+                showToast(`❌ Purchase failed: ${data.error}`, '#ef4444');
             }
+        } catch (error) {
+            showToast("⚠️ An error occurred during purchase.", '#ef4444');
         }
     };
     

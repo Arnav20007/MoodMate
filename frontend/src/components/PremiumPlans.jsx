@@ -109,7 +109,6 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: user.id,
           plan: selectedPlan
         })
       });
@@ -117,6 +116,14 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
       if (response.ok) {
         onSubscribe(selectedPlan);
         onClose();
+        
+        // Throw a quick toast for good measure
+        const t = document.createElement('div');
+        t.innerHTML = `<span>✨ Welcome to Premium! All features unlocked.</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
+        t.style.cssText = 'display:flex;align-items:center;position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;font-family:Inter,sans-serif;box-shadow:0 10px 25px rgba(16,185,129,0.3)';
+        t.querySelector('button').onclick = () => { if (document.body.contains(t)) t.remove(); };
+        document.body.appendChild(t); 
+        setTimeout(() => { if (document.body.contains(t)) t.remove(); }, 3000);
       } else {
         const result = await response.json();
         alert(`Subscription failed: ${result.error || 'Please try again.'}`);

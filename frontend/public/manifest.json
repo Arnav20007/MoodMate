@@ -1,0 +1,9 @@
+{
+  "short_name": "MoodMate",
+  "name": "MoodMate - Your AI Wellness Companion",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#7C3AED",
+  "background_color": "#F8FAFC"
+}

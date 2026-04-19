@@ -6,15 +6,17 @@ python-dotenv==1.0.0
 requests==2.31.0
 Werkzeug==2.3.7
 
-# Torch
-torch>=2.0.0
-
 # Database & Auth
 SQLAlchemy==2.0.23
 bcrypt==4.0.1
 PyJWT==2.8.0
 
-# Gemini API client
-google-genai
+# AI APIs
 google-generativeai==0.3.2
+groq==0.9.0
+
+# Text-to-Speech
+gtts==2.4.0
+
+# Production server
 gunicorn==21.2.0
