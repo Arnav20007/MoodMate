@@ -36,6 +36,7 @@
   display: flex;
   justify-content: center;
   margin-top: 1rem;
+  width: 100%;
 }
 
 .view-toggles {
@@ -43,6 +44,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
   background: white;
   padding: 0.5rem;
   border-radius: 12px;
@@ -52,9 +54,11 @@
 
 .view-toggle {
   display: flex;
+  flex: 1;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1rem;
+  padding: 0.6rem 0.5rem;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -62,7 +66,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .view-toggle.active {
