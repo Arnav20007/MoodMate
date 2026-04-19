@@ -276,7 +276,7 @@ const initialLiveEvents = [
   }
 ];
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 function Community({ user }) {
   // --- New State for Mood Wall ---

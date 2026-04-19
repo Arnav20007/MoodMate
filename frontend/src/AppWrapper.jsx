@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import App from "./App";
 import "./AppWrapper.css";
 
-const API_BASE_URL = "http://127.0.0.1:5000";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://moodmate-8-sucu.onrender.com";
 
 function AppWrapper() {
   const [user, setUser] = useState(null);

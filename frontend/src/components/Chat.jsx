@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './Chat.css';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 // Rotating empathy messages shown while AI is thinking
 const THINKING_PHRASES = [

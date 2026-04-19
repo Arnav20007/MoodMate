@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './PremiumPlans.css'; // Your existing CSS file will work perfectly
 
 // Base URL for API calls
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 const PremiumPlans = ({ user, onSubscribe, onClose }) => {
   const [selectedPlan, setSelectedPlan] = useState('annual'); // Default to the best value plan

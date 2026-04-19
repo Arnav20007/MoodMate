@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Shop.css';
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 // Placed here for demonstration
 // In src/components/Shop.jsx

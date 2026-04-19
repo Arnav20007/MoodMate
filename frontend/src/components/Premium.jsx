@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './Premium.css'; // Your existing CSS for the premium page
 
-const API_BASE_URL = 'http://127.0.0.1:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
 
 function Premium({ user, onUpdateUser }) {
     const [selectedPlan, setSelectedPlan] = useState('annual'); // Default to the best value plan

@@ -1,0 +1,31 @@
+# Environment variables (NEVER commit these!)
+.env
+backend/.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+backend/venv/
+.venv/
+
+# Database files
+*.db
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build output
+frontend/build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

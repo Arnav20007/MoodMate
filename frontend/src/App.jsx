@@ -105,7 +105,8 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
     if (!user) return;
     const fetchUserStatus = async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/user/status?user_id=${user.id}`);
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
+        const response = await fetch(`${API_BASE_URL}/api/user/status?user_id=${user.id}`);
         const data = await response.json();
         if (data.status === 'success') {
           setUser(prev => ({
