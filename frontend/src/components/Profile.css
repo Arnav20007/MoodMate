@@ -1,26 +1,26 @@
 /* ================================================================
-   PROFILE.CSS — Instagram-inspired mobile-first profile page
+   PROFILE.CSS — MoodMate Profile Page v2
+   Minimal · Personal · Intentional
    ================================================================ */
 
-/* ── Container ── */
 .profile-ig-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  background: #fafafa;
-  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg-app);
+  font-family: inherit;
 }
 
-/* ── Header (avatar + stats) ── */
+/* ── Header ── */
 .profile-ig-header {
   display: flex;
   align-items: center;
-  padding: 20px 20px 8px;
+  padding: 24px 20px 16px;
   gap: 20px;
-  background: white;
-  border-bottom: 1px solid #f1f5f9;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .profile-ig-avatar-wrap {
@@ -29,25 +29,17 @@
 }
 
 .profile-ig-avatar {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+  background: var(--primary-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  font-weight: 900;
+  font-size: 2rem;
+  font-weight: 800;
   color: white;
-  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
-}
-
-.profile-ig-premium-ring {
-  position: absolute;
-  inset: -3px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f59e0b, #ef4444, #8b5cf6);
-  z-index: -1;
+  box-shadow: var(--shadow-sm);
 }
 
 .profile-ig-stats {
@@ -60,489 +52,159 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
 }
 
 .pig-stat-num {
-  font-size: 18px;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .pig-stat-lbl {
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* ── Bio ── */
 .profile-ig-bio {
-  padding: 12px 20px 8px;
-  background: white;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .profile-ig-name {
-  font-size: 16px;
+  font-size: 1.1rem;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .profile-ig-email {
-  font-size: 12px;
-  color: #94a3b8;
-  margin-bottom: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
 }
 
 .profile-ig-badge {
   display: inline-block;
   padding: 4px 12px;
+  background: var(--primary-subtle);
+  color: var(--primary);
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
-.profile-ig-badge.premium {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #92400e;
-  border: 1px solid #fcd34d;
-}
-
-.profile-ig-badge.free {
-  background: #ede9fe;
-  color: #5b21b6;
-  border: 1px solid #c4b5fd;
-}
-
-/* ── XP Bar ── */
-.profile-ig-xp {
-  padding: 10px 20px;
-  background: white;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.profile-ig-xp-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.profile-ig-xp-track {
-  width: 100%;
-  height: 6px;
-  background: #e2e8f0;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.profile-ig-xp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 10px;
-  box-shadow: 0 0 8px rgba(99,102,241,0.4);
-}
-
-/* ── Badges ── */
-.profile-ig-badges {
-  display: flex;
-  gap: 12px;
-  padding: 16px 16px;
-  overflow-x: auto;
-  background: white;
-  border-bottom: 1px solid #f1f5f9;
-  scrollbar-width: none;
-}
-.profile-ig-badges::-webkit-scrollbar { display: none; }
-
-.profile-ig-badge-pill {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.profile-ig-badge-pill.earned {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
-  color: #92400e;
-  border: 1px solid #fcd34d;
-}
-
-.profile-ig-badge-pill.locked {
-  background: #f1f5f9;
-  color: #94a3b8;
-  border: 1px solid #e2e8f0;
-}
-
-/* ── Tabs ── */
+/* ── Tools / Tabs ── */
 .profile-ig-tabs {
   display: flex;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .profile-ig-tab {
   flex: 1;
-  padding: 12px 8px;
+  padding: 14px;
+  background: none;
   border: none;
-  background: transparent;
-  font-size: 13px;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: var(--transition);
 }
 
 .profile-ig-tab.active {
-  color: #6366f1;
-  border-bottom-color: #6366f1;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
-/* ── Body / Scrollable content ── */
-.profile-ig-body {
-  flex: 1;
-  height: auto;
+/* ── XP Section ── */
+.profile-ig-xp {
+  padding: 20px;
+  background: var(--bg-card);
+  margin-top: 12px;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
 }
 
-.profile-ig-section {
-  padding: 16px;
+.xp-header {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-bottom: 40px;
-}
-
-.profile-ig-card-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #0f172a;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: -4px;
-}
-
-/* ── Zen Garden Card ── */
-.profile-ig-card {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  border: 1px solid #f1f5f9;
-}
-
-.zen-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: linear-gradient(135deg, #022c22, #064e3b);
-  color: white;
-  border: none;
-}
-
-.zen-visual { font-size: 56px; flex-shrink: 0; }
-
-.zen-info { flex: 1; }
-
-.zen-title { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
-
-.zen-sub { font-size: 12px; color: #a7f3d0; margin-bottom: 10px; }
-
-.zen-bar-track {
-  width: 100%;
-  height: 6px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 4px;
-}
-
-.zen-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #34d399, #10b981);
-  border-radius: 3px;
-  transition: width 1s ease;
-}
-
-.zen-progress { font-size: 11px; color: #6ee7b7; }
-
-/* ── Quest cards ── */
-.quest-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.quest-icon {
-  font-size: 24px;
-  width: 44px;
-  height: 44px;
-  background: #f8fafc;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.quest-info { flex: 1; min-width: 0; }
-
-.quest-title { font-size: 14px; font-weight: 700; color: #0f172a; }
-
-.quest-sub { font-size: 12px; color: #64748b; margin: 2px 0 6px; }
-
-.quest-bar-track {
-  width: 100%;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.quest-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 2px;
-  transition: width 1s ease;
-}
-
-.quest-pct { font-size: 12px; font-weight: 800; color: #6366f1; flex-shrink: 0; }
-
-/* ── Mini stats grid ── */
-.profile-mini-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.profile-mini-card {
-  padding: 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.06);
-}
-
-.pmc-icon { font-size: 20px; margin-bottom: 4px; }
-
-.pmc-label {
-  font-size: 10px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
-.pmc-val { font-size: 14px; font-weight: 800; color: #0f172a; }
+.xp-progress-bg {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-input);
+  border-radius: 4px;
+  overflow: hidden;
+}
 
-/* ── Tools grid ── */
+.xp-progress-fill {
+  height: 100%;
+  background: var(--primary-gradient);
+}
+
+/* ── Grid of Tools ── */
 .profile-tools-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border-light);
+  margin-top: 12px;
 }
 
-.profile-tool-tile {
+.tool-item {
+  aspect-ratio: 1;
+  background: var(--bg-card);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  background: white;
-  border: 1px solid #f1f5f9;
-  border-radius: 16px;
-  padding: 14px 6px;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  position: relative;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-  transition: all 0.2s;
+  transition: var(--transition);
 }
 
-.profile-tool-tile:active { transform: scale(0.96); }
+.tool-item:hover { background: var(--bg-app); }
+.tool-icon { font-size: 1.5rem; }
+.tool-label { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
 
-.ptt-icon { font-size: 26px; }
-
-.ptt-label { font-size: 11px; font-weight: 700; color: #475569; text-align: center; }
-
-.ptt-lock {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 10px;
-}
-
-/* ── Settings ── */
-.profile-settings-card {
-  background: white;
-  border-radius: 16px;
-  padding: 4px 0;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-  border: 1px solid #f1f5f9;
-  overflow: hidden;
-}
-
-.psc-row {
+/* ── Actions ── */
+.profile-actions {
+  padding: 24px 20px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.psc-row:last-child { border-bottom: none; }
-
-.psc-label { font-size: 14px; font-weight: 600; color: #334155; }
-
-.psc-val { font-size: 13px; color: #64748b; font-weight: 500; }
-
-.psc-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-
-.psc-toggle-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.psc-toggle-row:last-child { border-bottom: none; }
-
-/* Toggle switch */
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; inset: 0; background: #e2e8f0; border-radius: 50px; transition: 0.3s; }
-.slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
-input:checked + .slider { background: #6366f1; }
-input:checked + .slider:before { transform: translateX(20px); }
-
-/* Integration buttons */
-.integration-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s;
-}
-.integration-btn:hover { background: #f1f5f9; }
-
-/* Logout / Danger */
-.profile-ig-logout {
+.profile-btn {
   width: 100%;
   padding: 14px;
-  border-radius: 14px;
-  background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
   font-weight: 700;
+  font-size: 0.88rem;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.2s;
-  margin-top: 8px;
-}
-.profile-ig-logout:hover { background: #fee2e2; }
-
-.profile-danger-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  background: #f8fafc;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  transition: var(--transition);
 }
 
-.profile-upgrade-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  border: none;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  box-shadow: 0 4px 14px rgba(99,102,241,0.3);
-  transition: all 0.2s;
-  margin-top: 8px;
-}
-.profile-upgrade-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+.profile-btn:hover { background: var(--bg-input); }
+.profile-btn.primary { background: var(--primary-gradient); color: white; border: none; }
+.profile-btn.danger { color: var(--error); border-color: var(--error-bg); background: var(--error-bg); }
 
-/* ── Premium popup (keep) ── */
-.premium-popup-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(6px);
-  z-index: 9000;
-  display: flex; align-items: center; justify-content: center;
-}
-.premium-popup-container {
-  background: white; border-radius: 20px; padding: 24px;
-  max-width: 340px; width: 90%;
-  box-shadow: 0 25px 60px rgba(0,0,0,0.2);
-}
-.premium-popup-header {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-}
-.premium-popup-icon { font-size: 28px; }
-.premium-popup-header h3 { flex: 1; margin: 0; font-size: 18px; font-weight: 800; color: #0f172a; }
-.premium-popup-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8; }
-.premium-popup-content h2 { font-size: 20px; color: #0f172a; margin: 0 0 8px; }
-.premium-popup-content p { font-size: 14px; color: #64748b; margin: 0 0 20px; }
-.premium-popup-actions { display: flex; gap: 10px; }
-.premium-popup-btn { flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; font-family: 'Inter', sans-serif; }
-.premium-popup-btn.secondary { background: #f1f5f9; color: #475569; }
-.premium-popup-btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
-
-/* ── Desktop layout ── */
-@media (min-width: 769px) {
-  .profile-ig-container {
-    flex-direction: row;
-    overflow-y: hidden;
-  }
-  .profile-ig-header,
-  .profile-ig-bio,
-  .profile-ig-xp,
-  .profile-ig-badges {
-    flex-direction: column;
-  }
-  .profile-ig-tabs {
-    flex-direction: column;
-    width: 220px;
-    border-bottom: none;
-    border-right: 1px solid #e2e8f0;
-    overflow-y: auto;
-  }
-  .profile-ig-tab {
-    text-align: left;
-    padding: 14px 20px;
-    border-bottom: none;
-    border-left: 2px solid transparent;
-  }
-  .profile-ig-tab.active {
-    border-left-color: #6366f1;
-    border-bottom: none;
-    background: #f5f3ff;
-  }
-  .profile-tools-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
+@media (max-width: 768px) {
+  .profile-ig-avatar { width: 72px; height: 72px; font-size: 1.75rem; }
+  .tool-item { padding: 12px; }
 }

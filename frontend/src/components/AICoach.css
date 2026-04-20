@@ -1,396 +1,56 @@
-/* AICoach.css - Premium Light Theme */
+/* ================================================================
+   AICOACH.CSS — Mental Wellness Guide v2
+   Insightful · Minimal · Guiding
+   ================================================================ */
 
 .ai-tab-wrapper {
-  padding: 32px 40px;
-  background-color: #f8fafc;
+  padding: 24px 20px;
+  background-color: var(--bg-app);
   height: 100%;
   overflow-y: auto;
-  color: #1e293b;
-  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  font-family: inherit;
 }
-
-.ai-tab-wrapper::-webkit-scrollbar { width: 6px; }
-.ai-tab-wrapper::-webkit-scrollbar-track { background: transparent; }
-.ai-tab-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
 .ai-dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-}
-
-.coach-identity {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.coach-avatar-lg {
-  font-size: 35px;
-  width: 70px;
-  height: 70px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  border-radius: 20px;
-  box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.coach-identity h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.5px;
-}
-
-.coach-identity p {
-  margin: 5px 0 0 0;
-  color: #6366f1;
-  font-weight: 700;
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.coach-msg-card {
-  background: white;
-  border-radius: 24px;
-  padding: 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
-  margin-bottom: 30px;
-  position: relative;
-  border: 1px solid #f1f5f9;
-  border-left: 6px solid #6366f1;
-}
-
-.coach-msg-card p {
-  margin: 0;
-  font-size: 18px;
-  color: #334155;
-  line-height: 1.6;
-  font-weight: 500;
-}
-
-.ai-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
   margin-bottom: 24px;
 }
 
-.ai-card {
-  background: white;
-  border-radius: 24px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-  border: 1px solid #f1f5f9;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ai-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.08);
-}
-
-.ai-card h3 {
-  margin: 0 0 25px 0;
-  font-size: 20px;
+.coach-identity h1 {
+  font-size: 1.5rem;
   font-weight: 800;
-  color: #0f172a;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
-/* Progress Section */
-.progress-visual {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.progress-circle {
-  width: 140px;
-  height: 140px;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.progress-circle svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.progress-background {
-  fill: none;
-  stroke: #f1f5f9;
-  stroke-width: 8;
-}
-
-.progress-fill {
-  fill: none;
-  stroke: url(#gradient);
-  stroke-width: 8;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.progress-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-}
-
-.progress-text .percentage {
-  display: block;
-  font-size: 32px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1;
-}
-
-.progress-text .label {
-  display: block;
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-  margin-top: 5px;
-}
-
-.progress-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  flex: 1;
-}
-
-.stat-box {
-  background: #f8fafc;
-  padding: 15px;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.stat-box .value {
-  display: block;
-  font-size: 24px;
-  font-weight: 800;
-  color: #6366f1;
-}
-
-.stat-box .label {
-  display: block;
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-/* Insights Section */
-.insight-item {
-  background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+.coach-msg-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
   padding: 20px;
-  border-radius: 16px;
-  margin-bottom: 15px;
-  border-left: 4px solid #8b5cf6;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+  border-left: 4px solid var(--primary);
 }
 
-.insight-item p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  color: #334155;
-  font-weight: 500;
-}
-
-.rec-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.rec-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 15px;
-  background: #f8fafc;
-  border-radius: 12px;
-  color: #475569;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-/* Plan Section */
-.time-tabs {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
-  background: #f1f5f9;
-  padding: 5px;
-  border-radius: 16px;
-}
-
-.time-tab {
-  flex: 1;
-  padding: 12px;
-  background: transparent;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.3s;
+.ai-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .time-tab.active {
-  background: white;
-  color: #6366f1;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-.coach-plan {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.coach-item {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 16px;
-  border: 1px solid transparent;
-  transition: all 0.3s;
-}
-
-.coach-item:hover {
-  background: white;
-  border-color: #e2e8f0;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.02);
-}
-
-.coach-item.completed {
-  opacity: 0.6;
-}
-
-.task-timing {
-  text-align: center;
-  min-width: 80px;
-}
-
-.scheduled-time {
-  display: block;
-  font-size: 15px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.optimal-time {
-  display: block;
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.task-icon {
-  font-size: 28px;
-  width: 60px;
-  height: 60px;
-  background: white;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-.task-details {
-  flex: 1;
-}
-
-.task-details h4 {
-  margin: 0 0 6px 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.task-details p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.task-tags {
-  display: flex;
-  gap: 10px;
-}
-
-.task-tag {
-  font-size: 12px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-weight: 700;
-}
-
-.tag-duration { background: #e0e7ff; color: #4338ca; }
-.tag-impact { background: #dcfce7; color: #15803d; }
-
-.task-action {
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  background: var(--primary);
+  color: white;
 }
 
 .task-action.start {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: var(--primary-gradient);
   color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
-}
-
-.task-action.start:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
-}
-
-.task-action.done {
-  background: #e2e8f0;
-  color: #64748b;
 }
 
 @media (max-width: 768px) {
-  .ai-tab-wrapper { padding: 20px 16px; padding-bottom: 20px; }
-  .ai-dashboard-header { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
-  .coach-identity { gap: 12px; }
-  .coach-avatar-lg { width: 50px; height: 50px; font-size: 24px; border-radius: 14px; }
-  .coach-identity h1 { font-size: 24px; }
-  .coach-msg-card { padding: 20px; margin-bottom: 24px; }
-  .coach-msg-card p { font-size: 15px; }
-  .ai-grid { grid-template-columns: 1fr; gap: 16px; }
-  .ai-card { padding: 20px; }
-  .progress-visual { flex-direction: column; text-align: center; gap: 20px; }
-  .progress-stats { grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
-  .time-tabs { flex-wrap: wrap; gap: 8px; }
-  .time-tab { padding: 10px; font-size: 14px; }
-  .coach-item { flex-direction: column; text-align: left; align-items: flex-start; gap: 12px; }
-  .task-timing { display: flex; align-items: center; gap: 8px; width: 100%; }
-  .optimal-time { margin-top: 0; }
-  .task-details { width: 100%; }
-  .task-tags { flex-wrap: wrap; }
-  .task-action { width: 100%; text-align: center; }
+  .ai-tab-wrapper { padding: 16px; }
+  .ai-card { padding: 16px; }
 }

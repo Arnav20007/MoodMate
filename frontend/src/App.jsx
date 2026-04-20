@@ -4,32 +4,81 @@ import './app.css';
 import AICoach from './components/AICoach';
 import Therapy from './components/Therapy';
 import Community from './components/Community';
-import Report from './components/Report';
 import Profile from './components/Profile';
 import Chat from './components/Chat';
+import Report from './components/Report';
 import DoctorDashboard from './components/DoctorDashboard';
 import DoctorLogin from './components/DoctorLogin';
 import Onboarding from './components/Onboarding';
 
-// Bottom nav tabs — Profile lives here like Instagram
-const NAV_TABS = [
-  { id: 'chat',      icon: '💬', label: 'Chat'      },
-  { id: 'ai-coach',  icon: '🤖', label: 'Coach'     },
-  { id: 'therapy',   icon: '🛋️', label: 'Therapy'   },
-  { id: 'community', icon: '🌍', label: 'Community' },
-  { id: 'profile',   icon: '👤', label: 'Profile'   },
-];
+// ─── SVG Icons (clean, consistent stroke icons like Headspace/Calm) ───
+const Icons = {
+  chat: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
+      strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  coach: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
+      strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
+      <path d="M12 8v4l3 3" />
+    </svg>
+  ),
+  therapy: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
+      strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  community: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
+      strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  profile: (active) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
+      strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  bell: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="var(--text-secondary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  ),
+};
 
+// ─── 4 core tabs ───────────────────────────────────────────────────────────
+const NAV_TABS = [
+  { id: 'chat',      label: 'Home'      },
+  { id: 'therapy',   label: 'Therapy'   },
+  { id: 'community', label: 'Connect'   },
+  { id: 'profile',   label: 'Me'        },
+];
 const TAB_IDS = NAV_TABS.map(t => t.id);
 
 const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin }) => {
   const [activeTab, setActiveTab] = useState('chat');
-  const [swipeDir, setSwipeDir] = useState(1); // 1 = going right/forward, -1 = going left/back
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('moodmate_onboarded')
   );
 
-  // ── Doctor Portal Role Switch ──
+  // ── Doctor Portal ──
   const [doctorMode, setDoctorMode] = useState(() => {
     const s = localStorage.getItem('moodmate_doctor_session');
     return s ? JSON.parse(s) : null;
@@ -37,14 +86,9 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   const [showDoctorLogin, setShowDoctorLogin] = useState(forceDocLogin || false);
   const [showSOSModal, setShowSOSModal] = useState(false);
 
-  useEffect(() => {
-    if (forceDocLogin) setShowDoctorLogin(true);
-  }, [forceDocLogin]);
+  useEffect(() => { if (forceDocLogin) setShowDoctorLogin(true); }, [forceDocLogin]);
 
-  const handleDoctorLogin = (doc) => {
-    setDoctorMode(doc);
-    setShowDoctorLogin(false);
-  };
+  const handleDoctorLogin  = (doc) => { setDoctorMode(doc); setShowDoctorLogin(false); };
   const handleDoctorLogout = () => {
     localStorage.removeItem('moodmate_doctor_session');
     setDoctorMode(null);
@@ -56,37 +100,29 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
     if (onCancelDocLogin) onCancelDocLogin();
   };
 
-  // ── Patient User Session ──
+  // ── Patient User ──
   const [user, setUser] = useState(initialUser || {
     username: 'Demo User', id: 1, is_premium: true, streak: 0, coins: 0,
   });
+  useEffect(() => { if (initialUser) setUser(initialUser); }, [initialUser]);
 
-  useEffect(() => {
-    if (initialUser) setUser(initialUser);
-  }, [initialUser]);
-
+  // ── Notifications ──
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
-
   const [notifications, setNotifications] = useState([
-    { id: 0, text: `Your previous mood was recorded as ${initialUser?.lastMood || 'centered'}. Would you like to check in now? 🧘`, time: 'Just now', unread: true },
-    { id: 1, text: 'Transaction complete: 5 coins awarded for activity. 🪙', time: '2m ago', unread: true },
-    { id: 2, text: 'Your community contribution has received a reaction ❤️', time: '1h ago', unread: false },
-    { id: 3, text: 'Clinical Insight: Your Weekly Wellness Report is available 📊', time: '3h ago', unread: false },
+    { id: 0, text: 'How are you feeling today? Your check-in streak is on track 🌱', time: 'Just now', unread: true },
+    { id: 1, text: 'You earned 5 coins for your last conversation 🪙', time: '2m ago', unread: true },
+    { id: 2, text: 'Someone in the community resonated with your post ❤️', time: '1h ago', unread: false },
   ]);
+  const unreadCount  = notifications.filter(n => n.unread).length;
+  const markAllRead  = () => setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
 
-  const unreadCount = notifications.filter(n => n.unread).length;
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-
-  // Close notification dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
-        setShowNotifications(false);
-      }
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifications(false);
     };
-    if (showNotifications) document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    if (showNotifications) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [showNotifications]);
 
   const handleOnboardingComplete = () => {
@@ -94,53 +130,49 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
     setShowOnboarding(false);
   };
 
-  // Sync Global User State with Backend
+  // ── Sync user status ──
   useEffect(() => {
     if (!user) return;
-    const fetchUserStatus = async () => {
+    const sync = async () => {
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
-        const response = await fetch(`${API_BASE_URL}/api/user/status?user_id=${user.id}`);
-        const data = await response.json();
+        const API = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
+        const res  = await fetch(`${API}/api/user/status?user_id=${user.id}`);
+        const data = await res.json();
         if (data.status === 'success') {
           setUser(prev => ({
             ...prev,
             streak: data.streak ?? prev.streak ?? 0,
             lastMood: data.last_mood || 'neutral',
-            coins: data.coins ?? prev.coins ?? 0,
+            coins:  data.coins   ?? prev.coins  ?? 0,
           }));
         }
-      } catch (err) { /* silently fail */ }
+      } catch {}
     };
-    fetchUserStatus();
+    sync();
   }, [user?.id]);
 
-  // ── Swipe Navigation (Native Scroll-Snap) ──
+  // ── Native Scroll-Snap Tab switching ──
   const scrollContainerRef = useRef(null);
-  const scrollTimeout = useRef(null);
+  const scrollTimeout       = useRef(null);
 
-  const handleScrollSync = () => {
-     if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
-     scrollTimeout.current = setTimeout(() => {
-        if (!scrollContainerRef.current) return;
-        const scrollLeft = scrollContainerRef.current.scrollLeft;
-        const width = scrollContainerRef.current.clientWidth;
-        const index = Math.round(scrollLeft / width);
-        if (TAB_IDS[index] && activeTab !== TAB_IDS[index]) {
-            setActiveTab(TAB_IDS[index]);
-        }
-     }, 100);
+  const syncActiveTab = () => {
+    if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+    scrollTimeout.current = setTimeout(() => {
+      if (!scrollContainerRef.current) return;
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      const index = Math.round(scrollLeft / clientWidth);
+      if (TAB_IDS[index] && activeTab !== TAB_IDS[index]) setActiveTab(TAB_IDS[index]);
+    }, 80);
   };
 
   const handleTabClick = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'report') return; // Skip scroll sync for Report overlay
     const index = TAB_IDS.indexOf(tabId);
     if (scrollContainerRef.current && index !== -1) {
-        scrollContainerRef.current.scrollTo({
-           left: index * scrollContainerRef.current.clientWidth,
-           behavior: 'smooth'
-        });
+      scrollContainerRef.current.scrollTo({
+        left: index * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth',
+      });
     }
   };
 
@@ -148,12 +180,13 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   if (showDoctorLogin && !doctorMode) {
     return <DoctorLogin onLoginSuccess={handleDoctorLogin} onBackToApp={handleDocBackToApp} />;
   }
-
   if (doctorMode) {
     return (
-      <div className="app-container" style={{ padding: 0 }}>
-        <main className="app-main" style={{ padding: 0 }}>
-          <DoctorDashboard doctor={doctorMode} onLogout={handleDoctorLogout} />
+      <div className="app-container">
+        <main className="app-main">
+          <div className="swipe-slide">
+            <DoctorDashboard doctor={doctorMode} onLogout={handleDoctorLogout} />
+          </div>
         </main>
       </div>
     );
@@ -165,65 +198,46 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       </AnimatePresence>
 
-      {/* ── Minimal Header (Instagram/WhatsApp style) ── */}
+      {/* ── Header ── */}
       <header className="app-header mobile-minimal-header">
-        {/* Left: Logo */}
         <h1 className="app-logo">MoodMate</h1>
 
-        {/* Right: Only bell + SOS icon + avatar — clean like IG */}
         <div className="header-actions">
-          {/* SOS — icon only on mobile */}
-          <button
-            className="sos-icon-btn"
-            onClick={() => setShowSOSModal(true)}
-            title="Emergency SOS"
-            aria-label="Emergency SOS"
-          >
+          {/* SOS */}
+          <button className="sos-icon-btn" onClick={() => setShowSOSModal(true)}
+            title="Emergency SOS" aria-label="Emergency SOS">
             🆘
           </button>
 
-          {/* Notification Bell */}
+          {/* Notifications */}
           <div ref={notifRef} style={{ position: 'relative' }}>
-            <button
-              className="notif-btn"
-              onClick={() => setShowNotifications(!showNotifications)}
-              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                stroke={showNotifications ? '#6366F1' : '#64748b'}
-                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+            <button className="notif-btn" onClick={() => setShowNotifications(!showNotifications)}
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount})` : ''}`}>
+              {Icons.bell()}
               {unreadCount > 0 && <span className="notif-badge" />}
             </button>
 
             <AnimatePresence>
               {showNotifications && (
-                <motion.div
-                  className="notif-dropdown"
+                <motion.div className="notif-dropdown"
                   initial={{ opacity: 0, y: 8, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                  transition={{ duration: 0.18, ease: 'easeOut' }}
-                  onClick={e => e.stopPropagation()}
-                >
+                  transition={{ duration: 0.15, ease: 'easeOut' }}
+                  onClick={e => e.stopPropagation()}>
                   <div className="notif-header">
                     <span>Notifications</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <button className="notif-mark-read" onClick={markAllRead}>Mark all read</button>
-                      <button className="notif-mark-read" onClick={() => setShowNotifications(false)} style={{ fontSize: '14px', color: '#94a3b8' }}>✕</button>
+                      <button className="notif-mark-read" onClick={() => setShowNotifications(false)}
+                        style={{ color: 'var(--text-muted)' }}>✕</button>
                     </div>
                   </div>
                   <div className="notif-list">
                     {notifications.map(n => (
-                      <div
-                        key={n.id}
-                        className={`notif-item ${n.unread ? 'unread' : ''}`}
+                      <div key={n.id} className={`notif-item ${n.unread ? 'unread' : ''}`}
                         onClick={() => setNotifications(prev =>
-                          prev.map(item => item.id === n.id ? { ...item, unread: false } : item)
-                        )}
-                      >
+                          prev.map(item => item.id === n.id ? { ...item, unread: false } : item))}>
                         <div className="notif-item-text">{n.text}</div>
                         <div className="notif-item-time">{n.time}</div>
                       </div>
@@ -234,23 +248,20 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             </AnimatePresence>
           </div>
 
-          {/* Desktop nav tabs (hidden on mobile — shown in bottom nav) */}
+          {/* Desktop nav tabs */}
           <nav className="nav-tabs desktop-only" role="navigation" aria-label="Main navigation">
             {NAV_TABS.map(tab => (
-              <button
-                key={tab.id}
-                id={`nav-tab-${tab.id}`}
+              <button key={tab.id} id={`nav-tab-${tab.id}`}
                 className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
                 onClick={() => handleTabClick(tab.id)}
-                aria-current={activeTab === tab.id ? 'page' : undefined}
-              >
-                <span role="img" aria-hidden="true">{tab.icon}</span>
+                aria-current={activeTab === tab.id ? 'page' : undefined}>
+                {Icons[tab.id]?.(activeTab === tab.id) || Icons.chat(activeTab === tab.id)}
                 {tab.label}
               </button>
             ))}
           </nav>
 
-          {/* Statistics pill — desktop only */}
+          {/* Stats pill (desktop) */}
           {(user.streak > 0 || user.coins > 0) && (
             <div className="stats-pill desktop-only">
               <span className="stats-pill-item">🔥 {user.streak || 0}</span>
@@ -261,16 +272,13 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         </div>
       </header>
 
-      {/* ── Main Content with Native Snap Swiping ── */}
-      <main
-        className="app-main swipe-container"
+      {/* ── Native Scroll-Snap Content ── */}
+      <main className="app-main swipe-container"
         ref={scrollContainerRef}
-        onScroll={handleScrollSync}
-      >
+        onScroll={syncActiveTab}>
         {NAV_TABS.map(tab => (
           <div key={tab.id} className="swipe-slide" id={`slide-${tab.id}`}>
             {tab.id === 'chat'      && <Chat user={user} />}
-            {tab.id === 'ai-coach'  && <AICoach user={user} />}
             {tab.id === 'therapy'   && <Therapy user={user} />}
             {tab.id === 'community' && <Community user={user} />}
             {tab.id === 'profile'   && <Profile user={user} onLogout={onLogout} />}
@@ -278,80 +286,70 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
         ))}
       </main>
 
-      {/* Render Report over everything if active */}
+      {/* Report overlay when accessed from Profile */}
       <AnimatePresence>
         {activeTab === 'report' && (
-           <motion.div
-              initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
-              style={{ position: 'absolute', top: 62, left: 0, right: 0, bottom: 0, background: 'var(--app-bg)', zIndex: 100, overflow: 'hidden' }}
-           >
-              <Report user={user} />
-           </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            style={{ position: 'fixed', top: 52, left: 0, right: 0, bottom: 64, background: 'var(--bg-app)', zIndex: 100, overflow: 'hidden' }}>
+            <Report user={user} />
+          </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Bottom Navigation (mobile) — Profile tab included like Instagram ── */}
+      {/* ── Bottom Navigation (mobile) ── */}
       <nav className="nav-tabs mobile-bottom-nav" role="navigation" aria-label="Main navigation">
         {NAV_TABS.map(tab => (
-          <button
-            key={tab.id}
-            id={`nav-tab-${tab.id}`}
+          <button key={tab.id} id={`mob-nav-${tab.id}`}
             className={activeTab === tab.id ? 'nav-tab active' : 'nav-tab'}
             onClick={() => handleTabClick(tab.id)}
-            aria-current={activeTab === tab.id ? 'page' : undefined}
-          >
+            aria-current={activeTab === tab.id ? 'page' : undefined}>
             {tab.id === 'profile'
               ? <span className="nav-avatar">{(user.username || 'U').charAt(0).toUpperCase()}</span>
-              : <span role="img" aria-hidden="true">{tab.icon}</span>
+              : Icons[tab.id]?.(activeTab === tab.id)
             }
             <span className="nav-label">{tab.label}</span>
           </button>
         ))}
       </nav>
 
-
-
-
-
-      {/* SOS Modal */}
+      {/* ── SOS Modal ── */}
       <AnimatePresence>
         {showSOSModal && (
-          <motion.div
-            className="sos-modal-overlay"
+          <motion.div className="sos-modal-overlay"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setShowSOSModal(false)}
-          >
-            <motion.div
-              className="sos-modal-content"
-              initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
-              onClick={e => e.stopPropagation()}
-            >
+            onClick={() => setShowSOSModal(false)}>
+            <motion.div className="sos-modal-content"
+              initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
+              onClick={e => e.stopPropagation()}>
               <div className="sos-modal-header">
-                <h2>🚨 Emergency Resources</h2>
+                <h2>🆘 Emergency Support</h2>
                 <button className="sos-modal-close" onClick={() => setShowSOSModal(false)}>✕</button>
               </div>
               <div className="sos-modal-body">
-                <p>If you or someone you know is in immediate danger, please contact emergency services or a crisis helpline right away. You are not alone.</p>
+                <p>You are not alone. Reach out to these free, confidential helplines available 24/7.</p>
                 <div className="sos-helpline-list">
                   <div className="sos-item highlight">
-                    <span className="sos-label">National Emergency (India)</span>
+                    <span className="sos-label">National Emergency</span>
                     <a href="tel:112" className="sos-number">📞 112</a>
                   </div>
                   <div className="sos-item">
-                    <span className="sos-label">Vandrevala Foundation (Mental Health)</span>
-                    <a href="tel:9999666555" className="sos-number">📞 +91 9999666555</a>
+                    <span className="sos-label">Vandrevala Foundation</span>
+                    <a href="tel:9999666555" className="sos-number">9999-666-555</a>
                   </div>
                   <div className="sos-item">
-                    <span className="sos-label">iCall (TISS Helpline)</span>
-                    <a href="tel:02225521111" className="sos-number">📞 022-25521111</a>
+                    <span className="sos-label">iCall (TISS)</span>
+                    <a href="tel:02225521111" className="sos-number">022-2552-1111</a>
                   </div>
                   <div className="sos-item">
-                    <span className="sos-label">Aasra (24/7 Suicide Prevention)</span>
-                    <a href="tel:919820466726" className="sos-number">📞 +91-9820466726</a>
+                    <span className="sos-label">Aasra (24/7)</span>
+                    <a href="tel:919820466726" className="sos-number">+91-9820466726</a>
                   </div>
                 </div>
                 <div className="sos-footer-msg">
-                  <p>These services are free, confidential, and available 24/7.</p>
+                  <p>Free · Confidential · Available 24/7</p>
                 </div>
               </div>
             </motion.div>
