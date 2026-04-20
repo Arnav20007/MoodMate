@@ -177,10 +177,11 @@ function AICoach({ user }) {
         <div className="coach-identity">
           <motion.div
             className="coach-avatar-lg"
-            animate={{ boxShadow: ['0 0 0 0px rgba(99,102,241,0.3)', '0 0 0 10px rgba(99,102,241,0)', '0 0 0 0px rgba(99,102,241,0)'] }}
-            transition={{ repeat: Infinity, duration: 2.5, ease: 'easeOut' }}
+            animate={{ boxShadow: ['0 0 0 0px rgba(74, 124, 89, 0.4)', '0 0 0 15px rgba(74, 124, 89, 0)', '0 0 0 0px rgba(74, 124, 89, 0)'] }}
+            transition={{ repeat: Infinity, duration: 3, ease: 'easeOut' }}
+            style={{ overflow: 'hidden', padding: 2, background: 'white' }}
           >
-            <span>🧘</span>
+            <img src="/coach-avatar.png" alt="Coach" style={{ width: '100%', height: '100%', borderRadius: '16px', objectFit: 'cover' }} />
           </motion.div>
           <div>
             <h1>Your Wellness Coach</h1>
