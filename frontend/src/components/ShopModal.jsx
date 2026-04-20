@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Shop.css';
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
+import { API_BASE_URL } from '../api';
 
 // Placed here for demonstration
 // In src/components/Shop.jsx
@@ -35,7 +35,7 @@ const sampleShopItems = [
 ];
 
 function Shop({ user, onUpdateUser }) {
-    const [shopItems, setShopItems] = useState(sampleShopItems);
+    const [shopItems] = useState(sampleShopItems);
     const [activeShopCategory, setActiveShopCategory] = useState("All");
     
     const showToast = (msg, color = '#10b981') => {

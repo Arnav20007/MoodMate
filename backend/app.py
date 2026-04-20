@@ -27,6 +27,8 @@ except Exception as e:
 
 # ========== Load Config ==========
 load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'moodmate.db')
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a-super-secret-key-you-must-change')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -36,11 +38,19 @@ app.config['SESSION_COOKIE_SECURE'] = False
 CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://moodmate-frontend.onrender.com", "*"])
 
 app.register_blueprint(auth_bp, url_prefix="/")
- 
+
+
+def safe_print(*parts):
+    text = " ".join(str(part) for part in parts)
+    try:
+        print(text, flush=True)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", "replace").decode("ascii"), flush=True)
+
 
 # ========== Database Setup ==========
 def init_db():
-    conn = sqlite3.connect('moodmate.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     # Existing tables
@@ -113,6 +123,44 @@ def init_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS password_reset_otps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            otp_code TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS therapy_bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            doctor_id INTEGER NOT NULL,
+            doctor_name TEXT NOT NULL,
+            patient_name TEXT NOT NULL,
+            patient_age TEXT,
+            patient_gender TEXT,
+            patient_phone TEXT NOT NULL,
+            concern TEXT NOT NULL,
+            slot TEXT NOT NULL,
+            session_mode TEXT,
+            session_price INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'new',
+            doctor_notes TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
+    try:
+        cursor.execute("ALTER TABLE therapy_bookings ADD COLUMN session_price INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+
     # FEATURE 1: Daily Check-ins
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS daily_checkins (
@@ -160,13 +208,13 @@ def init_db():
 
     conn.commit()
     conn.close()
-    print("✅ Database initialized with Retention Features")
+    safe_print("Database initialized with retention features.")
 
 init_db()
 
 @contextmanager
 def get_db():
-    conn = sqlite3.connect('moodmate.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -174,9 +222,175 @@ def get_db():
         conn.close()
 
 
+def serialize_booking(row):
+    return {
+        "id": row["id"],
+        "user_id": row["user_id"],
+        "doctor_id": row["doctor_id"],
+        "doctor_name": row["doctor_name"],
+        "name": row["patient_name"],
+        "age": row["patient_age"] or "—",
+        "gender": row["patient_gender"] or "—",
+        "phone": row["patient_phone"] or "—",
+        "reason": row["concern"],
+        "time": row["slot"],
+        "mode": row["session_mode"] or "Video",
+        "coins": row["session_price"] or 0,
+        "status": row["status"],
+        "notes": row["doctor_notes"] or "",
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
 
-@app.route('/api/shop/purchase', methods=['POST'])
-def shop_purchase():
+
+@app.route('/api/therapy/bookings', methods=['GET', 'POST'])
+def therapy_bookings():
+    if request.method == 'GET':
+        user_id = request.args.get('user_id')
+        doctor_id = request.args.get('doctor_id')
+
+        query = """
+            SELECT *
+            FROM therapy_bookings
+        """
+        params = []
+
+        if doctor_id:
+            query += " WHERE doctor_id = ?"
+            params.append(doctor_id)
+        elif user_id:
+            query += " WHERE user_id = ?"
+            params.append(user_id)
+
+        query += " ORDER BY created_at DESC"
+
+        with get_db() as conn:
+            rows = conn.execute(query, params).fetchall()
+
+        return jsonify({
+            "success": True,
+            "bookings": [serialize_booking(row) for row in rows]
+        }), 200
+
+    data = request.json or {}
+    required_fields = {
+        "doctor_id": "doctor",
+        "doctor_name": "doctor name",
+        "name": "patient name",
+        "phone": "phone",
+        "reason": "concern",
+        "time": "slot",
+    }
+
+    missing = [label for field, label in required_fields.items() if not str(data.get(field) or "").strip()]
+    if missing:
+        return jsonify({
+            "success": False,
+            "message": f"Missing required booking fields: {', '.join(missing)}."
+        }), 400
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO therapy_bookings (
+                user_id,
+                doctor_id,
+                doctor_name,
+                patient_name,
+                patient_age,
+                patient_gender,
+                patient_phone,
+                concern,
+                slot,
+                session_mode,
+                session_price
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                data.get("user_id"),
+                int(data["doctor_id"]),
+                str(data["doctor_name"]).strip(),
+                str(data["name"]).strip(),
+                str(data.get("age") or "").strip(),
+                str(data.get("gender") or "").strip(),
+                str(data["phone"]).strip(),
+                str(data["reason"]).strip(),
+                str(data["time"]).strip(),
+                str(data.get("mode") or "Video").strip(),
+                int(data.get("price") or 0),
+            )
+        )
+        booking_id = cursor.lastrowid
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM therapy_bookings WHERE id = ?",
+            (booking_id,)
+        ).fetchone()
+
+    return jsonify({
+        "success": True,
+        "message": "Session booked successfully.",
+        "booking": serialize_booking(row)
+    }), 201
+
+
+@app.route('/api/therapy/bookings/<int:booking_id>', methods=['PATCH'])
+def update_therapy_booking(booking_id):
+    data = request.json or {}
+    updates = []
+    params = []
+
+    if "status" in data:
+        status = str(data.get("status") or "").strip().lower()
+        if status not in {"new", "upcoming", "completed", "declined"}:
+            return jsonify({
+                "success": False,
+                "message": "Invalid booking status."
+            }), 400
+        updates.append("status = ?")
+        params.append(status)
+
+    if "notes" in data:
+        updates.append("doctor_notes = ?")
+        params.append(str(data.get("notes") or "").strip())
+
+    if not updates:
+        return jsonify({
+            "success": False,
+            "message": "No booking updates were provided."
+        }), 400
+
+    updates.append("updated_at = CURRENT_TIMESTAMP")
+    params.append(booking_id)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"UPDATE therapy_bookings SET {', '.join(updates)} WHERE id = ?",
+            params
+        )
+        if cursor.rowcount == 0:
+            return jsonify({
+                "success": False,
+                "message": "Booking not found."
+            }), 404
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM therapy_bookings WHERE id = ?",
+            (booking_id,)
+        ).fetchone()
+
+    return jsonify({
+        "success": True,
+        "message": "Booking updated successfully.",
+        "booking": serialize_booking(row)
+    }), 200
+
+
+
+def shop_purchase_legacy():
     data = request.json
     user_id = data.get('user_id')
     item_id = data.get('item_id')
@@ -217,8 +431,8 @@ ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 ELEVENLABS_VOICE_ID = os.getenv('ELEVENLABS_VOICE_ID', 'pNInz6obpgDQGcFmaJgB')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
 
-print("✅ ElevenLabs TTS:", "Loaded" if ELEVENLABS_API_KEY else "Not configured")
-print("✅ Hugging Face BERT:", "Loaded" if HUGGINGFACE_API_KEY else "Not configured")
+safe_print("ElevenLabs TTS:", "Loaded" if ELEVENLABS_API_KEY else "Not configured")
+safe_print("Hugging Face BERT:", "Loaded" if HUGGINGFACE_API_KEY else "Not configured")
 
 # ========== Audio Setup ==========
 AUDIO_FOLDER = os.path.join('static', 'audio')
@@ -563,18 +777,21 @@ def get_user_status():
         "streak": 0,
         "last_mood": "neutral",
         "coins": 0,
+        "is_premium": False,
+        "premium_plan": "free",
+        "purchased_items": [],
         "checked_in_today": False,
         "total_checkins": 0,
         "wellness_score": 70
     }
 
     try:
-        conn = sqlite3.connect('moodmate.db')
+        conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         # Safe query — only columns that definitely exist
-        cursor.execute("SELECT id, streak, coins FROM users WHERE id = ?", (user_id,))
+        cursor.execute("SELECT id, streak, coins, premium_plan, owned_items FROM users WHERE id = ?", (user_id,))
         user = cursor.fetchone()
 
         if not user:
@@ -601,11 +818,19 @@ def get_user_status():
         except Exception:
             pass
 
+        try:
+            purchased_items = json.loads(user['owned_items'] or '[]')
+        except Exception:
+            purchased_items = []
+
         conn.close()
         return jsonify({
             "status": "success",
             "streak": user['streak'] or 0,
             "coins": user['coins'] or 0,
+            "is_premium": (user['premium_plan'] or 'free') != 'free',
+            "premium_plan": user['premium_plan'] or 'free',
+            "purchased_items": purchased_items,
             "total_checkins": total_checkins,
             "last_mood": last_mood,
             "checked_in_today": checked_in,
@@ -861,7 +1086,7 @@ def health_check():
     return jsonify({
         "status": "success",
         "server": "MoodMate Backend",
-        "database": "connected" if os.path.exists('moodmate.db') else "not found",
+        "database": "connected" if os.path.exists(DB_PATH) else "not found",
         "timestamp": datetime.now().isoformat()
     })
 
@@ -1001,7 +1226,7 @@ def buy_premium(user_id):
     data = request.json or {}
     plan = data.get('plan', 'annual')
     
-    conn = sqlite3.connect('moodmate.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
         try:
@@ -1012,7 +1237,11 @@ def buy_premium(user_id):
                 return jsonify({"success": False, "error": f"ALTER TABLE failed: {str(op_e)}"}), 500
 
         # Do the upgrade
-        conn.execute("UPDATE users SET premium_plan = ? WHERE id = ?", (plan, user_id))
+        conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
+        try:
+            conn.execute("UPDATE users SET is_premium = 1 WHERE id = ?", (user_id,))
+        except sqlite3.OperationalError:
+            pass
         conn.commit()
         return jsonify({"success": True, "message": f"Upgraded to {plan} premium!", "is_premium": True})
     except Exception as e:
@@ -1027,13 +1256,13 @@ def simple_test():
 if __name__ == "__main__":
     os.makedirs('static/audio', exist_ok=True)
     
-    print("\n" + "="*60)
-    print("🚀 Starting MoodMate Server with Local LLM & API Fallback")
-    print("="*60)
-    print(f"📊 Database: moodmate.db")
-    print(f"🔊 Audio folder: {AUDIO_FOLDER}")
-    print(f"🤖 AI Service: Local (Ollama) + Cloud (Groq)")
-    print(f"🎵 ElevenLabs TTS: {'✅ Enabled' if ELEVENLABS_API_KEY else '❌ Disabled'}")
-    print("="*60)
+    safe_print("\n" + "="*60)
+    safe_print("Starting MoodMate Server with Local LLM & API Fallback")
+    safe_print("="*60)
+    safe_print(f"Database: {DB_PATH}")
+    safe_print(f"Audio folder: {AUDIO_FOLDER}")
+    safe_print("AI Service: Local (Ollama) + Cloud (Groq)")
+    safe_print(f"ElevenLabs TTS: {'Enabled' if ELEVENLABS_API_KEY else 'Disabled'}")
+    safe_print("="*60)
     
     app.run(host="0.0.0.0", port=5000, debug=True)

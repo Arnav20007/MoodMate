@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import './DoctorLogin.css';
+import { API_BASE_URL } from '../api';
 
 // In a real app these would be verified against a backend
 const DOCTOR_ACCOUNTS = [
-  { id: 1, name: 'Dr. Priya Sharma',    initials: 'PS', spec: 'Clinical Psychology',        email: 'priya@moodmate.in',  password: 'therapy123', palette: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
-  { id: 2, name: 'Aaryan Kumar',         initials: 'AK', spec: 'Counseling Psychology',      email: 'aaryan@moodmate.in', password: 'counsel456', palette: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
-  { id: 3, name: 'Dr. Ankur Verma',      initials: 'AV', spec: 'Psychiatry',                 email: 'ankur@moodmate.in',  password: 'psych789',   palette: 'linear-gradient(135deg,#ec4899,#f43f5e)' },
-  { id: 4, name: 'Aanchal Patel',        initials: 'AP', spec: 'Art Therapy',                email: 'aanchal@moodmate.in',password: 'art2024',   palette: 'linear-gradient(135deg,#10b981,#059669)' },
-  { id: 5, name: 'Aakash Patel',         initials: 'AaP',spec: 'Cognitive Behavioral Therapy',email: 'aakash@moodmate.in', password: 'cbt2024',   palette: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
-  { id: 6, name: 'Nitin Kumar',          initials: 'NK', spec: 'Mindfulness & Meditation',   email: 'nitin@moodmate.in',  password: 'mind2024',  palette: 'linear-gradient(135deg,#8b5cf6,#ec4899)' },
+  { id: 1, name: 'Dr. Priya Sharma', initials: 'PS', spec: 'Clinical Psychology', email: 'priya@moodmate.in', palette: 'linear-gradient(135deg,#4f46e5,#7c3aed)' },
+  { id: 2, name: 'Aaryan Kumar', initials: 'AK', spec: 'Counseling Psychology', email: 'aaryan@moodmate.in', palette: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
+  { id: 3, name: 'Dr. Ankur Verma', initials: 'AV', spec: 'Psychiatry', email: 'ankur@moodmate.in', palette: 'linear-gradient(135deg,#ec4899,#f43f5e)' },
+  { id: 4, name: 'Aanchal Patel', initials: 'AP', spec: 'Art Therapy', email: 'aanchal@moodmate.in', palette: 'linear-gradient(135deg,#10b981,#059669)' },
+  { id: 5, name: 'Aakash Patel', initials: 'AaP', spec: 'Cognitive Behavioral Therapy', email: 'aakash@moodmate.in', palette: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
+  { id: 6, name: 'Nitin Kumar', initials: 'NK', spec: 'Mindfulness & Meditation', email: 'nitin@moodmate.in', palette: 'linear-gradient(135deg,#8b5cf6,#ec4899)' },
 ];
 
 export default function DoctorLogin({ onLoginSuccess, onBackToApp }) {
@@ -17,30 +18,35 @@ export default function DoctorLogin({ onLoginSuccess, onBackToApp }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('');
     if (!selectedDoctor) { setError('Please select your doctor account.'); return; }
     if (!password)        { setError('Please enter your password.'); return; }
 
     setLoading(true);
-    // Simulate a brief auth check
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/doctor/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: selectedDoctor.email,
+          password,
+        }),
+      });
+      const data = await response.json();
       setLoading(false);
-      if (selectedDoctor.password === password) {
-        // Save session
-        localStorage.setItem('moodmate_doctor_session', JSON.stringify({
-          id: selectedDoctor.id,
-          name: selectedDoctor.name,
-          initials: selectedDoctor.initials,
-          spec: selectedDoctor.spec,
-          palette: selectedDoctor.palette,
-        }));
-        onLoginSuccess(selectedDoctor);
-      } else {
-        setError('Incorrect password. Please try again.');
-        setPassword('');
+      if (response.ok && data.success && data.doctor) {
+        localStorage.setItem('moodmate_doctor_session', JSON.stringify(data.doctor));
+        onLoginSuccess(data.doctor);
+        return;
       }
-    }, 900);
+      setError(data.message || 'Incorrect password. Please try again.');
+      setPassword('');
+    } catch {
+      setLoading(false);
+      setError('Doctor portal is unavailable right now. Please try again.');
+    }
   };
 
   return (
@@ -146,7 +152,7 @@ export default function DoctorLogin({ onLoginSuccess, onBackToApp }) {
             </div>
 
             <div className="dl-row">
-              <button className="dl-forgot" type="button" onClick={() => setError('Contact admin@moodmate.in to reset your password.')}>Forgot password?</button>
+              <button className="dl-forgot" type="button" onClick={() => setError(`Contact admin@moodmate.in to reset the password for ${selectedDoctor?.email || 'your doctor account'}.`)}>Forgot password?</button>
             </div>
 
             {error && <div className="dl-error">⚠️ {error}</div>}
@@ -163,7 +169,7 @@ export default function DoctorLogin({ onLoginSuccess, onBackToApp }) {
 
             <div className="dl-back">
               Not a doctor?{' '}
-              <a onClick={onBackToApp}>Go back to MoodMate</a>
+              <button type="button" onClick={onBackToApp} style={{ background: 'transparent', border: 'none', padding: 0, color: 'inherit', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}>Go back to MoodMate</button>
             </div>
           </div>
         </div>

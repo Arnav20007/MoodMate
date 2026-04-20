@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import './PremiumPlans.css'; // Your existing CSS file will work perfectly
-
-// Base URL for API calls
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
+import { API_BASE_URL } from '../api';
 
 const PremiumPlans = ({ user, onSubscribe, onClose }) => {
   const [selectedPlan, setSelectedPlan] = useState('annual');

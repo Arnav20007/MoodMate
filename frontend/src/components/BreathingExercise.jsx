@@ -76,12 +76,6 @@ const TECHNIQUES = {
   },
 };
 
-const PHASE_COLORS = {
-  inhale: '#10B981',  inhale2: '#F59E0B',
-  hold: '#3B82F6',   hold2: '#8B5CF6',
-  exhale: '#EF4444',
-};
-
 function BreathingExercise({ onClose }) {
   const [screen, setScreen] = useState('select'); // select | session | done
   const [selectedKey, setSelectedKey] = useState('box');

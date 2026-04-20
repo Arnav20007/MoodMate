@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import App from "./App";
 import "./AppWrapper.css";
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || "https://moodmate-8-sucu.onrender.com";
+import { API_BASE_URL } from "./api";
 
 function AppWrapper() {
   const [user, setUser] = useState(null);

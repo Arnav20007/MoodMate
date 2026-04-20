@@ -17,7 +17,6 @@ function Profile({ user, onUpdateUser, onLogout }) {
   const [activeSection, setActiveSection] = useState('home');
   const [activeToolSection, setActiveToolSection] = useState(null);
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
-  const [premiumFeature, setPremiumFeature] = useState('');
 
   const userXP = user.xp || 1250;
   const currentLevel = Math.floor(userXP / 1000) + 1;
@@ -44,7 +43,6 @@ function Profile({ user, onUpdateUser, onLogout }) {
 
   const handleTool = (tool) => {
     if (tool.premium && !user.is_premium) {
-      setPremiumFeature(tool.id);
       setShowPremiumPopup(true);
       return;
     }
@@ -102,7 +100,7 @@ function Profile({ user, onUpdateUser, onLogout }) {
         </div>
         <div style={{ flex: 1, overflow: 'auto' }}>
           <PremiumPlans user={user}
-            onSubscribe={() => { localStorage.setItem('moodmateUser', JSON.stringify({ ...user, is_premium: true })); window.location.reload(); }}
+            onSubscribe={(selectedPlan) => onUpdateUser?.({ is_premium: true, premium_plan: selectedPlan || 'annual', role: 'premium' })}
             onClose={() => setActiveSection('home')}
           />
         </div>

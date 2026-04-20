@@ -1,11 +1,18 @@
 import os
-import logging
 import random
 from dotenv import load_dotenv
 
 load_dotenv()
 
-print("[AI Service] Initializing with Gemini as primary engine...", flush=True)
+
+def safe_log(message: str):
+    try:
+        print(message, flush=True)
+    except UnicodeEncodeError:
+        print(message.encode("ascii", "replace").decode("ascii"), flush=True)
+
+
+safe_log("[AI Service] Initializing with Gemini as primary engine...")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
@@ -32,9 +39,9 @@ if GEMINI_API_KEY:
                 "max_output_tokens": 512,
             }
         )
-        print(f"[AI Service] Gemini configured with model: {GEMINI_MODEL}", flush=True)
+        safe_log(f"[AI Service] Gemini configured with model: {GEMINI_MODEL}")
     except Exception as e:
-        print(f"[AI Service] Gemini init failed: {e}", flush=True)
+        safe_log(f"[AI Service] Gemini init failed: {e}")
 
 # Initialize Groq as fallback
 groq_client = None
@@ -42,9 +49,9 @@ if GROQ_API_KEY:
     try:
         from groq import Groq
         groq_client = Groq(api_key=GROQ_API_KEY)
-        print("[AI Service] Groq client initialized as fallback.", flush=True)
+        safe_log("[AI Service] Groq client initialized as fallback.")
     except Exception as e:
-        print(f"[AI Service] Groq initialization failed: {e}", flush=True)
+        safe_log(f"[AI Service] Groq initialization failed: {e}")
 
 
 def get_system_prompt():
@@ -66,14 +73,14 @@ def generate_gemini_response(user_message: str, context: str = "") -> str:
         return ""
     try:
         prompt = f"{get_system_prompt()}\n\n{context}User: {user_message}\n\nMoodMate:"
-        print(f"✨ [Gemini] Generating response...", flush=True)
+        safe_log("[Gemini] Generating response...")
         response = gemini_model.generate_content(prompt)
         if response and response.text:
             text = response.text.strip()
-            print(f"✅ [Gemini] Got {len(text)} chars.", flush=True)
+            safe_log(f"[Gemini] Got {len(text)} chars.")
             return text
     except Exception as e:
-        print(f"❌ [Gemini] Error: {e}", flush=True)
+        safe_log(f"[Gemini] Error: {e}")
     return ""
 
 
@@ -82,7 +89,7 @@ def generate_groq_response(user_message: str, context: str = "") -> str:
     if not groq_client:
         return ""
     try:
-        print(f"☁️ [Groq] Fallback generating...", flush=True)
+        safe_log("[Groq] Fallback generating...")
         messages = [
             {"role": "system", "content": get_system_prompt()},
             {"role": "user", "content": f"{context}{user_message}"}
@@ -93,10 +100,10 @@ def generate_groq_response(user_message: str, context: str = "") -> str:
         )
         if response and response.choices:
             text = response.choices[0].message.content.strip()
-            print(f"✅ [Groq] Got {len(text)} chars.", flush=True)
+            safe_log(f"[Groq] Got {len(text)} chars.")
             return text
     except Exception as e:
-        print(f"❌ [Groq] Error: {e}", flush=True)
+        safe_log(f"[Groq] Error: {e}")
     return ""
 
 
@@ -113,7 +120,7 @@ def generate_local_response(prompt: str) -> str:
         if response.status_code == 200:
             return response.json().get("response", "").strip()
     except Exception as e:
-        print(f"❌ [Ollama] Error: {e}", flush=True)
+        safe_log(f"[Ollama] Error: {e}")
     return ""
 
 
@@ -198,7 +205,7 @@ def generate_ai_response(user_message: str, conversation_history: list = None) -
         return {"text": text, "source": "local", "fallback_used": True}
 
     # 4. Smart Heuristic fallback (Ensures the app is "Live" without keys)
-    print("🆘 [AI Service] All API providers failed. Using Heuristic Engine.", flush=True)
+    safe_log("[AI Service] All API providers failed. Using heuristic engine.")
     return {
         "text": generate_heuristic_fallback(user_message),
         "source": "heuristic",

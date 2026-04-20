@@ -37,6 +37,8 @@ const gameLibrary = [
     }
 ];
 
+const MEMORY_OASIS_EMOJIS = ['🌸', '🌿', '🦋', '🍄', '🐢', '🦆'];
+
 // --- ZEN POP GAME ---
 const ZenPopGame = () => {
     const [bubbles, setBubbles] = useState([]);
@@ -135,14 +137,13 @@ const NeuralFlowGame = () => {
 
 // --- MEMORY OASIS GAME ---
 const MemoryOasisGame = () => {
-    const emojis = ['🌸', '🌿', '🦋', '🍄', '🐢', '🦆'];
     const [cards, setCards] = useState([]);
     const [flipped, setFlipped] = useState([]);
     const [solved, setSolved] = useState([]);
     const [moves, setMoves] = useState(0);
 
     useEffect(() => {
-        const shuffled = [...emojis, ...emojis]
+        const shuffled = [...MEMORY_OASIS_EMOJIS, ...MEMORY_OASIS_EMOJIS]
             .sort(() => Math.random() - 0.5)
             .map((e, i) => ({ id: i, emoji: e }));
         setCards(shuffled);

@@ -1,70 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './DoctorDashboard.css';
+import { API_BASE_URL } from '../api';
 
-// The doctor logged in — Dr. Priya Sharma
-const DOCTOR = {
+const DEFAULT_DOCTOR = {
   id: 1,
   name: 'Dr. Priya Sharma',
   initials: 'PS',
-  specialization: 'Clinical Psychology',
+  spec: 'Clinical Psychology',
   experience: '8 years',
   rating: 5.0,
   reviews: 312,
   languages: ['Hindi', 'English'],
   pricePerSession: 1999,
-  palette: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
 };
 
-// Hardcoded demo appointments (past + upcoming)
-const DEMO_APPTS = [
-  {
-    id: 'demo-1',
-    name: 'Rahul Mehta',
-    age: 24, gender: 'Male',
-    phone: '9876500001',
-    reason: 'Anxiety and procrastination — struggling with college deadlines',
-    time: 'Mon 2 PM',
-    mode: 'Video',
-    lang: 'Hindi',
-    status: 'upcoming',
-    coins: 1999,
-  },
-  {
-    id: 'demo-2',
-    name: 'Sneha Iyer',
-    age: 28, gender: 'Female',
-    phone: '9876500002',
-    reason: 'Relationship stress and self-esteem issues',
-    time: 'Wed 10 AM',
-    mode: 'Chat',
-    lang: 'English',
-    status: 'upcoming',
-    coins: 1999,
-  },
-  {
-    id: 'demo-3',
-    name: 'Karan Joshi',
-    age: 22, gender: 'Male',
-    phone: '9876500003',
-    reason: 'Work-life balance and burnout recovery',
-    time: 'Fri 4 PM',
-    mode: 'Video',
-    lang: 'Hindi',
-    status: 'completed',
-    coins: 1999,
-  },
-];
-
-const STATUS_LABEL = {
-  upcoming: '🗓 Upcoming',
-  pending: '⏳ Pending',
-  completed: '✓ Done',
-  new: '🆕 New',
-};
-
-function toast(msg, color = '#10b981') {
+function showToast(message, color = '#10b981') {
   const t = document.createElement('div');
-  t.innerHTML = `<span>${msg}</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
+  t.innerHTML = `<span>${message}</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">x</button>`;
   t.style.cssText = `display:flex;align-items:center;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:${color};color:white;padding:13px 26px;border-radius:14px;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.2);font-family:Inter,sans-serif;white-space:nowrap`;
   t.querySelector('button').onclick = () => { if (document.body.contains(t)) t.remove(); };
   document.body.appendChild(t);
@@ -72,62 +24,102 @@ function toast(msg, color = '#10b981') {
 }
 
 export default function DoctorDashboard({ doctor, onLogout }) {
+  const currentDoctor = { ...DEFAULT_DOCTOR, ...(doctor || {}) };
   const [appts, setAppts] = useState([]);
+  const [selectedAppt, setSelectedAppt] = useState(null);
   const [notes, setNotes] = useState('');
   const [isOnline, setIsOnline] = useState(true);
-  const [selectedAppt, setSelectedAppt] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Use logged-in doctor data if passed, fallback to hardcoded
-  const DOC = doctor || DOCTOR;
-
-  // Load: demo appts + any real bookings from localStorage
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('moodmate_bookings') || '[]');
-    // Convert user bookings to doctor appointment format
-    const userBookings = saved.map((b, i) => ({
-      id: `user-${i}`,
-      name: b.name,
-      age: b.age || '—',
-      gender: b.gender || '—',
-      phone: b.phone || '—',
-      reason: b.reason,
-      time: b.time,
-      mode: b.mode || 'Video',
-      lang: 'Hindi',
-      status: 'new',
-      coins: b.price || 1999,
-    }));
+    const fetchBookings = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/therapy/bookings?doctor_id=${currentDoctor.id}`, {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+          setAppts(data.bookings || []);
+        } else {
+          showToast(data.message || 'Could not load bookings.', '#ef4444');
+        }
+      } catch {
+        showToast('Doctor dashboard could not load bookings.', '#ef4444');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setAppts([...userBookings, ...DEMO_APPTS]);
-  }, []);
+    fetchBookings();
+  }, [currentDoctor.id]);
 
-  const handleApprove = (id) => {
-    setAppts(prev => prev.map(a => a.id === id ? { ...a, status: 'upcoming' } : a));
-    toast('✅ Appointment confirmed!', '#10b981');
+  useEffect(() => {
+    setNotes(selectedAppt?.notes || '');
+  }, [selectedAppt]);
+
+  const updateBooking = async (bookingId, payload, successMessage) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/therapy/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        showToast(data.message || 'Could not update the booking.', '#ef4444');
+        return null;
+      }
+
+      setAppts((prev) => prev.map((appt) => (appt.id === bookingId ? data.booking : appt)));
+      setSelectedAppt((prev) => (prev?.id === bookingId ? data.booking : prev));
+      if (successMessage) showToast(successMessage);
+      return data.booking;
+    } catch {
+      showToast('Network error while updating the booking.', '#ef4444');
+      return null;
+    }
   };
 
-  const handleDecline = (id) => {
-    setAppts(prev => prev.filter(a => a.id !== id));
-    toast('❌ Appointment declined', '#ef4444');
+  const handleApprove = (id) => updateBooking(id, { status: 'upcoming' }, 'Booking approved.');
+  const handleDecline = async (id) => {
+    const updated = await updateBooking(id, { status: 'declined' }, 'Booking declined.');
+    if (updated) {
+      setAppts((prev) => prev.filter((appt) => appt.status !== 'declined'));
+      if (selectedAppt?.id === id) setSelectedAppt(null);
+    }
   };
-
   const handleStart = (appt) => {
-    toast(`🎥 Starting session with ${appt.name}…`, '#4f46e5');
+    setSelectedAppt(appt);
+    showToast(`Session opened for ${appt.name}. Add notes and mark it complete when finished.`, '#4f46e5');
+  };
+  const handleComplete = (id) => updateBooking(id, { status: 'completed' }, 'Session marked complete.');
+
+  const saveNotes = async () => {
+    if (!selectedAppt) {
+      showToast('Select a session before saving notes.', '#ef4444');
+      return;
+    }
+    setIsSaving(true);
+    await updateBooking(selectedAppt.id, { notes }, 'Notes saved.');
+    setIsSaving(false);
   };
 
-  const saveNotes = () => {
-    if (!notes.trim()) return;
-    toast('📝 Notes saved!', '#7c3aed');
-    setNotes('');
-  };
-
-  const newBookings = appts.filter(a => a.status === 'new');
-  const upcomingAppts = appts.filter(a => a.status === 'upcoming');
-  const completedAppts = appts.filter(a => a.status === 'completed');
-  const totalEarnings = appts.filter(a => a.status === 'completed').reduce((s, a) => s + a.coins, 0);
-  const todayEarnings = completedAppts.length > 0 ? completedAppts[0].coins : 0;
-
+  const activeAppts = appts.filter((appt) => appt.status !== 'declined');
+  const newBookings = activeAppts.filter((appt) => appt.status === 'new');
+  const upcomingAppts = activeAppts.filter((appt) => appt.status === 'upcoming');
+  const completedAppts = activeAppts.filter((appt) => appt.status === 'completed');
+  const totalEarnings = completedAppts.reduce((sum, appt) => sum + (appt.coins || currentDoctor.pricePerSession || 0), 0);
+  const todayEarnings = completedAppts.reduce((sum, appt) => sum + (appt.coins || currentDoctor.pricePerSession || 0), 0);
+  const expectedRevenue = upcomingAppts.reduce((sum, appt) => sum + (appt.coins || currentDoctor.pricePerSession || 0), 0);
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
+  const nextPayout = useMemo(() => {
+    const payout = new Date();
+    payout.setDate(payout.getDate() + 7);
+    return payout.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('moodmate_doctor_session');
@@ -137,90 +129,77 @@ export default function DoctorDashboard({ doctor, onLogout }) {
 
   return (
     <div className="dd-page">
-
-      {/* ── Banner ── */}
       <div className="dd-banner">
         <div className="dd-banner-top">
-          <span className="dd-banner-label">🩺 Doctor Portal</span>
+          <span className="dd-banner-label">Doctor Portal</span>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               className="dd-online-badge"
-              onClick={() => { setIsOnline(!isOnline); toast(isOnline ? '⏸ You are now offline' : '🟢 You are now online', isOnline ? '#6b7280' : '#10b981'); }}
+              onClick={() => {
+                setIsOnline((prev) => !prev);
+                showToast(isOnline ? 'You are now offline.' : 'You are now online.', isOnline ? '#6b7280' : '#10b981');
+              }}
             >
               <span className="dd-online-dot" style={{ background: isOnline ? '#10b981' : '#9ca3af', animation: isOnline ? undefined : 'none' }}></span>
               {isOnline ? 'Online' : 'Offline'}
             </button>
-            {/* ── Sign Out — always visible ── */}
             <button
               onClick={handleLogout}
-              style={{ padding: '7px 16px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', color: 'white', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Inter,sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '6px' }}
-              onMouseOver={e => e.currentTarget.style.background='rgba(255,255,255,0.22)'}
-              onMouseOut={e => e.currentTarget.style.background='rgba(255,255,255,0.12)'}
+              style={{ padding: '7px 16px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: '20px', color: 'white', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Inter,sans-serif' }}
             >
-              ↩ Sign Out
+              Sign Out
             </button>
           </div>
         </div>
 
         <div className="dd-doctor-row">
-          <div className="dd-doc-avatar">{DOC.initials}</div>
+          <div className="dd-doc-avatar">{currentDoctor.initials}</div>
           <div>
-            <h1>{DOC.name}</h1>
-            <p>{DOC.spec || DOC.specialization}</p>
+            <h1>{currentDoctor.name}</h1>
+            <p>{currentDoctor.spec}</p>
             <div className="dd-doc-meta">
-              <span className="dd-doc-meta-item">⭐ {DOCTOR.rating} ({DOCTOR.reviews} reviews)</span>
-              <span className="dd-doc-meta-item">🎓 {DOCTOR.experience}</span>
-              <span className="dd-doc-meta-item">🌐 {DOCTOR.languages.join(', ')}</span>
-              <span className="dd-doc-meta-item">💰 ₹{DOCTOR.pricePerSession}/session</span>
+              <span className="dd-doc-meta-item">Rating {currentDoctor.rating} ({currentDoctor.reviews} reviews)</span>
+              <span className="dd-doc-meta-item">{currentDoctor.experience}</span>
+              <span className="dd-doc-meta-item">{currentDoctor.languages.join(', ')}</span>
+              <span className="dd-doc-meta-item">Rs {currentDoctor.pricePerSession}/session</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Floating Stat Cards ── */}
       <div className="dd-stats-row">
         <div className="dd-stat-card">
-          <div className="dd-stat-icon">📅</div>
           <div className="dd-stat-label">Today's Sessions</div>
           <div className="dd-stat-value">{upcomingAppts.length}</div>
           <div className="dd-stat-sub">scheduled</div>
         </div>
         <div className="dd-stat-card">
-          <div className="dd-stat-icon">🆕</div>
           <div className="dd-stat-label">New Requests</div>
-          <div className="dd-stat-value" style={{ color: newBookings.length > 0 ? '#f59e0b' : '#1e1b4b' }}>
-            {newBookings.length}
-          </div>
+          <div className="dd-stat-value" style={{ color: newBookings.length > 0 ? '#f59e0b' : '#1e1b4b' }}>{newBookings.length}</div>
           <div className="dd-stat-sub">awaiting approval</div>
         </div>
         <div className="dd-stat-card">
-          <div className="dd-stat-icon">🪙</div>
           <div className="dd-stat-label">Today's Earnings</div>
-          <div className="dd-stat-value" style={{ color: '#7c3aed' }}>₹{todayEarnings.toLocaleString('en-IN')}</div>
-          <div className="dd-stat-sub">from {completedAppts.length} session{completedAppts.length !== 1 ? 's' : ''}</div>
+          <div className="dd-stat-value" style={{ color: '#7c3aed' }}>Rs {todayEarnings.toLocaleString('en-IN')}</div>
+          <div className="dd-stat-sub">completed sessions</div>
         </div>
         <div className="dd-stat-card">
-          <div className="dd-stat-icon">✅</div>
           <div className="dd-stat-label">Completed</div>
           <div className="dd-stat-value" style={{ color: '#10b981' }}>{completedAppts.length}</div>
           <div className="dd-stat-sub">all time</div>
         </div>
       </div>
 
-      {/* ── Body ── */}
       <div className="dd-body">
-
-        {/* Left: Appointments */}
         <div>
-          {/* New Booking Requests */}
           {newBookings.length > 0 && (
             <div className="dd-section">
               <div className="dd-section-header">
-                <h2>🆕 New Booking Requests</h2>
+                <h2>New Booking Requests</h2>
                 <span className="dd-section-badge red">{newBookings.length} pending</span>
               </div>
               <div className="dd-appt-list">
-                {newBookings.map(appt => (
+                {newBookings.map((appt) => (
                   <div key={appt.id} className="dd-appt-card pending">
                     <span className="dd-status new">NEW</span>
                     <div className="dd-appt-time">
@@ -228,17 +207,17 @@ export default function DoctorDashboard({ doctor, onLogout }) {
                       <span className="day">{appt.time?.split(' ')[0]}</span>
                     </div>
                     <div className="dd-appt-info">
-                      <div className="dd-appt-name">{appt.name} <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>· Age {appt.age} · {appt.gender}</span></div>
+                      <div className="dd-appt-name">{appt.name} <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>Age {appt.age} - {appt.gender}</span></div>
                       <div className="dd-appt-topic">"{appt.reason}"</div>
                       <div className="dd-appt-tags">
-                        <span className="dd-appt-tag mode">📱 {appt.mode}</span>
-                        <span className="dd-appt-tag lang">🌐 {appt.lang}</span>
-                        <span className="dd-appt-tag" style={{ background: '#fef3c7', color: '#92400e' }}>🪙 {appt.coins} coins</span>
+                        <span className="dd-appt-tag mode">{appt.mode}</span>
+                        <span className="dd-appt-tag">{appt.phone}</span>
+                        <span className="dd-appt-tag" style={{ background: '#fef3c7', color: '#92400e' }}>Rs {(appt.coins || currentDoctor.pricePerSession).toLocaleString('en-IN')}</span>
                       </div>
                     </div>
                     <div className="dd-appt-actions">
-                      <button className="dd-btn-approve" onClick={() => handleApprove(appt.id)}>✓ Approve</button>
-                      <button className="dd-btn-decline" onClick={() => handleDecline(appt.id)}>✗ Decline</button>
+                      <button className="dd-btn-approve" onClick={() => handleApprove(appt.id)}>Approve</button>
+                      <button className="dd-btn-decline" onClick={() => handleDecline(appt.id)}>Decline</button>
                     </div>
                   </div>
                 ))}
@@ -246,19 +225,17 @@ export default function DoctorDashboard({ doctor, onLogout }) {
             </div>
           )}
 
-          {/* Upcoming Sessions */}
           <div className="dd-section">
             <div className="dd-section-header">
-              <h2>🗓 Upcoming Sessions</h2>
+              <h2>Upcoming Sessions</h2>
               <span className="dd-section-badge">{upcomingAppts.length} scheduled</span>
             </div>
             <div className="dd-appt-list">
-              {upcomingAppts.length === 0 ? (
-                <div className="dd-empty">
-                  <div className="icon">📭</div>
-                  <p>No upcoming sessions. New bookings will appear here after you approve them.</p>
-                </div>
-              ) : upcomingAppts.map(appt => (
+              {isLoading ? (
+                <div className="dd-empty"><p>Loading bookings...</p></div>
+              ) : upcomingAppts.length === 0 ? (
+                <div className="dd-empty"><p>No upcoming sessions yet. Approved bookings will appear here.</p></div>
+              ) : upcomingAppts.map((appt) => (
                 <div key={appt.id} className="dd-appt-card upcoming" onClick={() => setSelectedAppt(selectedAppt?.id === appt.id ? null : appt)} style={{ cursor: 'pointer' }}>
                   <span className="dd-status upcoming">Upcoming</span>
                   <div className="dd-appt-time">
@@ -266,38 +243,38 @@ export default function DoctorDashboard({ doctor, onLogout }) {
                     <span className="day">{appt.time?.split(' ')[0]}</span>
                   </div>
                   <div className="dd-appt-info">
-                    <div className="dd-appt-name">{appt.name} <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>· {appt.gender}, {appt.age}</span></div>
+                    <div className="dd-appt-name">{appt.name} <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500' }}>{appt.gender}, {appt.age}</span></div>
                     <div className="dd-appt-topic">"{appt.reason}"</div>
                     <div className="dd-appt-tags">
-                      <span className="dd-appt-tag mode">{appt.mode === 'Video' ? '📹' : appt.mode === 'Voice' ? '📞' : '💬'} {appt.mode}</span>
-                      <span className="dd-appt-tag lang">🌐 {appt.lang}</span>
+                      <span className="dd-appt-tag mode">{appt.mode}</span>
+                      <span className="dd-appt-tag lang">{appt.phone}</span>
                     </div>
                     {selectedAppt?.id === appt.id && (
                       <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '10px', border: '1px solid #ede9fe' }}>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contact</div>
-                        <div style={{ fontSize: '13px', color: '#374151' }}>📞 {appt.phone}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selected session</div>
+                        <div style={{ fontSize: '13px', color: '#374151' }}>Phone: {appt.phone}</div>
                       </div>
                     )}
                   </div>
-                  <div className="dd-appt-actions" onClick={e => e.stopPropagation()}>
-                    <button className="dd-btn-start" onClick={() => handleStart(appt)}>▶ Start Session</button>
-                    <button className="dd-btn-notes" onClick={() => setNotes(`Notes for ${appt.name}: `)}>📝 Add Notes</button>
+                  <div className="dd-appt-actions" onClick={(e) => e.stopPropagation()}>
+                    <button className="dd-btn-start" onClick={() => handleStart(appt)}>Start Session</button>
+                    <button className="dd-btn-notes" onClick={() => setSelectedAppt(appt)}>Add Notes</button>
+                    <button className="dd-btn-approve" onClick={() => handleComplete(appt.id)}>Complete</button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Completed */}
           {completedAppts.length > 0 && (
             <div className="dd-section">
               <div className="dd-section-header">
-                <h2>✅ Completed Sessions</h2>
+                <h2>Completed Sessions</h2>
                 <span className="dd-section-badge green">{completedAppts.length} done</span>
               </div>
               <div className="dd-appt-list">
-                {completedAppts.map(appt => (
-                  <div key={appt.id} className="dd-appt-card completed" style={{ opacity: 0.8 }}>
+                {completedAppts.map((appt) => (
+                  <div key={appt.id} className="dd-appt-card completed" style={{ opacity: 0.85 }}>
                     <span className="dd-status completed">Done</span>
                     <div className="dd-appt-time" style={{ background: 'linear-gradient(135deg,#10b981,#059669)' }}>
                       <span className="time">{appt.time?.split(' ').slice(1).join(' ')}</span>
@@ -308,7 +285,7 @@ export default function DoctorDashboard({ doctor, onLogout }) {
                       <div className="dd-appt-topic">"{appt.reason}"</div>
                     </div>
                     <div style={{ fontSize: '15px', fontWeight: '800', color: '#10b981', flexShrink: 0 }}>
-                      +₹{appt.coins.toLocaleString('en-IN')}
+                      +Rs {(appt.coins || currentDoctor.pricePerSession).toLocaleString('en-IN')}
                     </div>
                   </div>
                 ))}
@@ -317,71 +294,45 @@ export default function DoctorDashboard({ doctor, onLogout }) {
           )}
         </div>
 
-        {/* ── Right Column ── */}
         <div className="dd-right">
-
-          {/* Today summary */}
           <div className="dd-today-card">
             <h3>Today</h3>
             <div className="dd-today-date">{today}</div>
             <div className="dd-today-grid">
-              <div className="dd-today-stat">
-                <span className="val">{upcomingAppts.length}</span>
-                <span className="lbl">Sessions</span>
-              </div>
-              <div className="dd-today-stat">
-                <span className="val">{newBookings.length}</span>
-                <span className="lbl">New requests</span>
-              </div>
-              <div className="dd-today-stat">
-                <span className="val">₹{(upcomingAppts.length * DOCTOR.pricePerSession).toLocaleString('en-IN')}</span>
-                <span className="lbl">Expected</span>
-              </div>
-              <div className="dd-today-stat">
-                <span className="val">{completedAppts.length}</span>
-                <span className="lbl">Completed</span>
-              </div>
+              <div className="dd-today-stat"><span className="val">{upcomingAppts.length}</span><span className="lbl">Sessions</span></div>
+              <div className="dd-today-stat"><span className="val">{newBookings.length}</span><span className="lbl">New requests</span></div>
+              <div className="dd-today-stat"><span className="val">Rs {expectedRevenue.toLocaleString('en-IN')}</span><span className="lbl">Expected</span></div>
+              <div className="dd-today-stat"><span className="val">{completedAppts.length}</span><span className="lbl">Completed</span></div>
             </div>
           </div>
 
-          {/* Earnings breakdown */}
           <div className="dd-earnings">
-            <h3>💰 Earnings Overview</h3>
-            <div className="dd-earn-row">
-              <span className="dd-earn-label">Today</span>
-              <span className="dd-earn-value green">₹{todayEarnings.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="dd-earn-row">
-              <span className="dd-earn-label">This month</span>
-              <span className="dd-earn-value purple">₹{(totalEarnings + 18000).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="dd-earn-row">
-              <span className="dd-earn-label">Total sessions</span>
-              <span className="dd-earn-value">{appts.length + 12}</span>
-            </div>
-            <div className="dd-earn-row">
-              <span className="dd-earn-label">Avg session rating</span>
-              <span className="dd-earn-value">⭐ {DOCTOR.rating}</span>
-            </div>
-            <div className="dd-earn-row">
-              <span className="dd-earn-label">Next payout</span>
-              <span className="dd-earn-value green">Apr 1, 2026</span>
-            </div>
+            <h3>Earnings Overview</h3>
+            <div className="dd-earn-row"><span className="dd-earn-label">Today</span><span className="dd-earn-value green">Rs {todayEarnings.toLocaleString('en-IN')}</span></div>
+            <div className="dd-earn-row"><span className="dd-earn-label">Pending revenue</span><span className="dd-earn-value purple">Rs {expectedRevenue.toLocaleString('en-IN')}</span></div>
+            <div className="dd-earn-row"><span className="dd-earn-label">Total earned</span><span className="dd-earn-value">Rs {totalEarnings.toLocaleString('en-IN')}</span></div>
+            <div className="dd-earn-row"><span className="dd-earn-label">Avg session rating</span><span className="dd-earn-value">{currentDoctor.rating}</span></div>
+            <div className="dd-earn-row"><span className="dd-earn-label">Next payout</span><span className="dd-earn-value green">{nextPayout}</span></div>
           </div>
 
-          {/* Session notes */}
           <div className="dd-section" style={{ marginBottom: 0 }}>
             <div className="dd-section-header">
-              <h2>📝 Session Notes</h2>
+              <h2>Session Notes</h2>
             </div>
+            <p style={{ marginTop: 0, color: '#64748b', fontSize: '13px' }}>
+              {selectedAppt ? `Editing notes for ${selectedAppt.name}.` : 'Select an approved session to add private notes.'}
+            </p>
             <textarea
               className="dd-notes-input"
               rows="5"
               value={notes}
-              onChange={e => setNotes(e.target.value)}
-              placeholder="Add private notes for a patient session… (only visible to you)"
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add private notes for a patient session..."
+              disabled={!selectedAppt}
             />
-            <button className="dd-notes-save" onClick={saveNotes}>Save Notes</button>
+            <button className="dd-notes-save" onClick={saveNotes} disabled={!selectedAppt || isSaving}>
+              {isSaving ? 'Saving...' : 'Save Notes'}
+            </button>
           </div>
         </div>
       </div>

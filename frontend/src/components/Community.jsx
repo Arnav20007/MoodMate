@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './Community.css';
+import { API_BASE_URL } from '../api';
 
 // Sample data
 const initialMoodWall = [
@@ -276,7 +277,31 @@ const initialLiveEvents = [
   }
 ];
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
+const TAB_CONFIG = [
+  { key: 'feed', label: 'Feed', description: 'Anonymous reflections', getCount: ({ posts }) => posts.length },
+  { key: 'groups', label: 'Groups', description: 'Peer circles', getCount: ({ groups }) => groups.length },
+  { key: 'events', label: 'Events', description: 'Live sessions', getCount: () => initialLiveEvents.length },
+];
+
+const MOOD_LABELS = {
+  peaceful: 'Peaceful',
+  happy: 'Hopeful',
+  neutral: 'Steady',
+  anxious: 'Anxious',
+  sad: 'Low',
+  stressed: 'Stressed',
+  proud: 'Proud',
+  relieved: 'Relieved',
+  calm: 'Calm',
+  frustrated: 'Frustrated',
+  healing: 'Healing',
+};
+
+const SUPPORT_REACTIONS = [
+  { type: 'upvote', label: 'Relatable' },
+  { type: 'same_feeling', label: 'Same here' },
+  { type: 'support', label: 'Support' },
+];
 
 function Community({ user }) {
   // --- New State for Mood Wall ---
@@ -485,7 +510,7 @@ function Community({ user }) {
     }
   };
 
-  const showToast = (msg, color = '#1e293b') => {
+  const showToast = (msg, color = '#233127') => {
     const t = document.createElement('div');
     t.innerHTML = `<span>${msg}</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
     t.style.cssText = `display:flex;align-items:center;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:${color};color:white;padding:12px 24px;border-radius:14px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.2);font-family:Inter,sans-serif;white-space:nowrap`;
@@ -503,15 +528,6 @@ function Community({ user }) {
     showToast('🔔 Reminder set for this event!', '#6366f1');
   };
 
-  const renderEngagementIndicator = (level) => (
-    <div className="engagement-indicator">
-      <div className="engagement-bar">
-        <div className="engagement-fill" style={{ width: `${level}%` }}></div>
-      </div>
-      <span className="engagement-value">{level}%</span>
-    </div>
-  );
-
   const renderActivityLevel = (level) => {
     const levels = {
       "very high": { color: "#10B981", label: "Very Active" },
@@ -525,6 +541,7 @@ function Community({ user }) {
       </span>
     );
   };
+  void renderActivityLevel;
 
   const supportReactions = [
     { type: 'upvote', label: '⬆️ Relatable' },

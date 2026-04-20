@@ -10,6 +10,7 @@ import Report from './components/Report';
 import DoctorDashboard from './components/DoctorDashboard';
 import DoctorLogin from './components/DoctorLogin';
 import Onboarding from './components/Onboarding';
+import { API_BASE_URL } from './api';
 
 // ─── SVG Icons (clean, consistent stroke icons like Headspace/Calm) ───
 const Icons = {
@@ -20,7 +21,7 @@ const Icons = {
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   ),
-  coach: (active) => (
+  'ai-coach': (active) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
       stroke={active ? 'var(--primary)' : 'var(--text-muted)'}
       strokeWidth={active ? "2.2" : "1.8"} strokeLinecap="round" strokeLinejoin="round">
@@ -81,8 +82,13 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
 
   // ── Doctor Portal ──
   const [doctorMode, setDoctorMode] = useState(() => {
-    const s = localStorage.getItem('moodmate_doctor_session');
-    return s ? JSON.parse(s) : null;
+    try {
+      const s = localStorage.getItem('moodmate_doctor_session');
+      return s ? JSON.parse(s) : null;
+    } catch {
+      localStorage.removeItem('moodmate_doctor_session');
+      return null;
+    }
   });
   const [showDoctorLogin, setShowDoctorLogin] = useState(forceDocLogin || false);
   const [showSOSModal, setShowSOSModal] = useState(false);
@@ -103,9 +109,18 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
 
   // ── Patient User ──
   const [user, setUser] = useState(initialUser || {
-    username: 'Demo User', id: 1, is_premium: true, streak: 0, coins: 0,
+    username: 'Demo User', id: 1, is_premium: true, streak: 0, coins: 0, purchasedItems: [],
   });
   useEffect(() => { if (initialUser) setUser(initialUser); }, [initialUser]);
+
+  const mergeUserUpdates = (updates) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updates };
+      localStorage.setItem('moodmateUser', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // ── Notifications ──
   const [showNotifications, setShowNotifications] = useState(false);
@@ -132,25 +147,32 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   };
 
   // ── Sync user status ──
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     const sync = async () => {
       try {
-        const API = process.env.REACT_APP_API_URL || 'https://moodmate-8-sucu.onrender.com';
-        const res  = await fetch(`${API}/api/user/status?user_id=${user.id}`);
+        const res  = await fetch(`${API_BASE_URL}/api/user/status?user_id=${userId}`);
         const data = await res.json();
         if (data.status === 'success') {
-          setUser(prev => ({
-            ...prev,
-            streak: data.streak ?? prev.streak ?? 0,
-            lastMood: data.last_mood || 'neutral',
-            coins:  data.coins   ?? prev.coins  ?? 0,
-          }));
+          setUser(prev => {
+            const next = {
+              ...prev,
+              streak: data.streak ?? prev.streak ?? 0,
+              lastMood: data.last_mood || 'neutral',
+              coins:  data.coins   ?? prev.coins  ?? 0,
+              is_premium: data.is_premium ?? prev.is_premium ?? false,
+              premium_plan: data.premium_plan ?? prev.premium_plan ?? 'free',
+              purchasedItems: data.purchased_items ?? prev.purchasedItems ?? [],
+            };
+            localStorage.setItem('moodmateUser', JSON.stringify(next));
+            return next;
+          });
         }
       } catch {}
     };
     sync();
-  }, [user?.id]);
+  }, [userId]);
 
   // ── Native Scroll-Snap Tab switching ──
   const scrollContainerRef = useRef(null);
@@ -281,9 +303,9 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
           <div key={tab.id} className="swipe-slide" id={`slide-${tab.id}`}>
             {tab.id === 'chat'      && <Chat user={user} />}
             {tab.id === 'ai-coach' && <AICoach user={user} />}
-            {tab.id === 'therapy'  && <Therapy user={user} />}
+            {tab.id === 'therapy'  && <Therapy user={user} onUpdateUser={mergeUserUpdates} />}
             {tab.id === 'community'&& <Community user={user} />}
-            {tab.id === 'profile'  && <Profile user={user} onLogout={onLogout} />}
+            {tab.id === 'profile'  && <Profile user={user} onUpdateUser={mergeUserUpdates} onLogout={onLogout} />}
           </div>
         ))}
       </main>
@@ -296,7 +318,7 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
             style={{ position: 'fixed', top: 52, left: 0, right: 0, bottom: 64, background: 'var(--bg-app)', zIndex: 100, overflow: 'hidden' }}>
-            <Report user={user} />
+            <Report user={user} onUpdateUser={mergeUserUpdates} />
           </motion.div>
         )}
       </AnimatePresence>
