@@ -36,10 +36,10 @@ function Profile({ user, onUpdateUser, onLogout }) {
     { id: 'journal',   icon: '📔', label: 'Journal',  premium: false },
     { id: 'games',     icon: '🎮', label: 'Games',    premium: false },
     { id: 'shop',      icon: '🛒', label: 'Shop',     premium: false },
-    { id: 'sleep',     icon: '🌙', label: 'Sleep',    premium: true  },
-    { id: 'meditation',icon: '🧘', label: 'Meditate', premium: true  },
-    { id: 'report',    icon: '📊', label: 'Report',   premium: true  },
-    { id: 'aiCoach',   icon: '🤖', label: 'Coach',    premium: true  },
+    { id: 'sleep',     icon: '🌙', label: 'Sleep Aid',premium: true  },
+    { id: 'meditation',icon: '🧘', label: 'Focus',    premium: true  },
+    { id: 'report',    icon: '📊', label: 'Analysis', premium: true  },
+    { id: 'aiCoach',   icon: '🤖', label: 'Wellness Coach', premium: true  },
   ];
 
   const handleTool = (tool) => {
