@@ -1,56 +1,198 @@
 /* ================================================================
-   AICOACH.CSS — Mental Wellness Guide v2
-   Insightful · Minimal · Guiding
+   AICOACH.CSS — Wellness Coach (Complete)
+   Calm · Evidence-based · Growth
    ================================================================ */
 
 .ai-tab-wrapper {
-  padding: 24px 20px;
-  background-color: var(--bg-app);
-  height: 100%;
+  flex: 1;
+  padding: 20px 18px;
+  background: var(--bg-app, #F5F3EF);
   overflow-y: auto;
-  color: var(--text-primary);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   font-family: inherit;
+  padding-bottom: 80px; /* clear bottom nav */
+}
+.ai-tab-wrapper::-webkit-scrollbar { width: 3px; }
+.ai-tab-wrapper::-webkit-scrollbar-thumb { background: var(--border, #E3DDD6); border-radius: 3px; }
+
+/* === HEADER ===================================================== */
+.ai-dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
-.ai-dashboard-header {
-  margin-bottom: 24px;
+.coach-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.coach-avatar-lg {
+  width: 52px; height: 52px;
+  border-radius: 18px;
+  background: var(--primary-gradient, linear-gradient(135deg,#4A7C59,#6BAE8A));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(74,124,89,0.25);
 }
 
 .coach-identity h1 {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
+  color: var(--text-primary, #2C3E30);
+  margin: 0 0 2px;
+}
+.coach-identity p {
+  font-size: 0.78rem;
+  color: var(--text-secondary, #6B7C6E);
+  margin: 0;
 }
 
+/* === GREETING CARD ============================================== */
 .coach-msg-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
-  border-left: 4px solid var(--primary);
+  background: white;
+  border-radius: 16px;
+  border-left: 4px solid var(--primary, #4A7C59);
+  padding: 16px 18px;
+  border: 1px solid var(--border-light, #EDE8E3);
+  border-left: 4px solid var(--primary, #4A7C59);
+}
+.coach-msg-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-primary, #2C3E30);
+  line-height: 1.6;
+  font-style: italic;
 }
 
+/* === GRID LAYOUT (2 cols) ======================================= */
+.ai-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* === BASE CARD ================================================== */
 .ai-card {
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
+  background: white;
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid var(--border-light, #EDE8E3);
+  overflow: hidden;
+}
+.ai-card h3 {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-primary, #2C3E30);
 }
 
-.time-tab.active {
-  background: var(--primary);
-  color: white;
+/* === PROGRESS CIRCLE ============================================ */
+.progress-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
 }
 
-.task-action.start {
-  background: var(--primary-gradient);
-  color: white;
+.progress-circle {
+  position: relative;
+  width: 90px; height: 90px;
+}
+.progress-circle svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+.progress-background {
+  fill: none;
+  stroke: var(--bg-input, #F0EDE8);
+  stroke-width: 9;
+}
+.progress-fill {
+  fill: none;
+  stroke: var(--primary, #4A7C59);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
 }
 
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.progress-text .percentage {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text-primary, #2C3E30);
+}
+.progress-text .label {
+  font-size: 0.65rem;
+  color: var(--text-muted, #9CA89E);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.stat-box .value {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary, #2C3E30);
+}
+.stat-box .label {
+  font-size: 0.68rem;
+  color: var(--text-muted, #9CA89E);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* === TIPS LIST ================================================== */
+.rec-list  { display: flex; flex-direction: column; gap: 8px; }
+.rec-item  {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-app, #F5F3EF);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #6B7C6E);
+  line-height: 1.45;
+}
+
+/* === CBT CARD ================================================== */
+.cbt-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--border-light, #EDE8E3);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+/* === RESPONSIVE =============================================== */
 @media (max-width: 768px) {
-  .ai-tab-wrapper { padding: 16px; }
-  .ai-card { padding: 16px; }
+  .ai-tab-wrapper  { padding: 14px; }
+  .ai-grid         { grid-template-columns: 1fr; }
+  .progress-circle { width: 80px; height: 80px; }
+  .ai-card         { padding: 14px; }
 }

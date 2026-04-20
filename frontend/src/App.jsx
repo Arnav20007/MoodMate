@@ -63,12 +63,13 @@ const Icons = {
   ),
 };
 
-// ─── 4 core tabs ───────────────────────────────────────────────────────────
+// ─── 5 core tabs (AI Coach restored to footer per user request) ───
 const NAV_TABS = [
-  { id: 'chat',      label: 'Home'      },
-  { id: 'therapy',   label: 'Therapy'   },
-  { id: 'community', label: 'Connect'   },
-  { id: 'profile',   label: 'Me'        },
+  { id: 'chat',      label: 'Home'    },
+  { id: 'ai-coach',  label: 'Coach'   },
+  { id: 'therapy',   label: 'Therapy' },
+  { id: 'community', label: 'Connect' },
+  { id: 'profile',   label: 'Me'      },
 ];
 const TAB_IDS = NAV_TABS.map(t => t.id);
 
@@ -276,12 +277,13 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
       <main className="app-main swipe-container"
         ref={scrollContainerRef}
         onScroll={syncActiveTab}>
-        {NAV_TABS.map(tab => (
+      {NAV_TABS.map(tab => (
           <div key={tab.id} className="swipe-slide" id={`slide-${tab.id}`}>
             {tab.id === 'chat'      && <Chat user={user} />}
-            {tab.id === 'therapy'   && <Therapy user={user} />}
-            {tab.id === 'community' && <Community user={user} />}
-            {tab.id === 'profile'   && <Profile user={user} onLogout={onLogout} />}
+            {tab.id === 'ai-coach' && <AICoach user={user} />}
+            {tab.id === 'therapy'  && <Therapy user={user} />}
+            {tab.id === 'community'&& <Community user={user} />}
+            {tab.id === 'profile'  && <Profile user={user} onLogout={onLogout} />}
           </div>
         ))}
       </main>
