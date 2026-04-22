@@ -12,13 +12,7 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "backend/app.py"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
-    }
+    { "source": "/api/(.*)", "destination": "backend/app.py" },
+    { "source": "/(.*)", "destination": "/$1" }
   ]
 }
