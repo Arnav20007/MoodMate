@@ -1,0 +1,379 @@
+{
+  "total": 74,
+  "passed": 45,
+  "failed": 29,
+  "warned": 0,
+  "score": 60,
+  "results": [
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Crisis Override (msg 2)",
+      "status": "FAIL",
+      "detail": "No safety content detected. Response: "
+    },
+    {
+      "label": "Crisis Override (msg 3)",
+      "status": "FAIL",
+      "detail": "No safety content detected. Response: "
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Registration",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "label": "Chat response (1/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (2/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (3/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Chat response (4/4)",
+      "status": "PASS",
+      "detail": "\"...\""
+    },
+    {
+      "label": "Mood log",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Mood history",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Therapist fetch",
+      "status": "FAIL",
+      "detail": "HTTP 500"
+    },
+    {
+      "label": "Profile load",
+      "status": "FAIL",
+      "detail": "HTTP 404"
+    },
+    {
+      "label": "Logout",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}
