@@ -130,6 +130,18 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   }, [showNotifications]);
 
   useEffect(() => {
+    const splashTimer = setTimeout(() => setShowSplash(false), 1200);
+
+    const params = new URLSearchParams(window.location.search);
+    const shortcutTab = params.get('tab');
+    if (shortcutTab && TAB_IDS.includes(shortcutTab)) {
+      setActiveTab(shortcutTab);
+    }
+    
+    return () => clearTimeout(splashTimer);
+  }, []);
+
+  useEffect(() => {
     if (!user?.id) return;
     const sync = async () => {
       try {
