@@ -226,6 +226,22 @@ const MoodMate = ({ user: initialUser, onLogout, forceDocLogin, onCancelDocLogin
   return (
     <div className="app-container">
       <AnimatePresence>
+        {showSplash && (
+          <motion.div 
+            className="app-splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+          >
+            <div className="splash-content">
+              <div className="splash-logo">🌙</div>
+              <h2>MoodMate</h2>
+              <div className="splash-loader">
+                <div className="loader-fill" />
+              </div>
+            </div>
+          </motion.div>
+        )}
         {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
       </AnimatePresence>
 

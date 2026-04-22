@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './SOSModal.css';
 
 const SOSModal = ({ isOpen, onClose }) => {

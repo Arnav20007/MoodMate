@@ -57,11 +57,7 @@ const MOOD_STARTERS = [
   },
 ];
 
-const FEATURE_CARDS = [
-  { title: 'Private pace', body: 'Respond whenever you are ready. There is no pressure to perform here.' },
-  { title: 'Grounding first', body: 'When things feel intense, the chat can gently shift toward steadier support.' },
-  { title: 'Real next step', body: 'If you need more than reflection, the app can point you toward care options.' },
-];
+
 
 const MOOD_INTERVENTIONS = {
   sad: {
