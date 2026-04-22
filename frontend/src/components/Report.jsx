@@ -35,7 +35,7 @@ const Report = ({ user, onUpdateUser }) => {
     const fetchReport = async () => {
       try {
         setIsLoading(true);
-        const res = await fetch(`${API_BASE_URL}/api/report?user_id=${user?.id || 1}`);
+        const res = await fetch(`${API_BASE_URL}/api/report`, { credentials: 'include' });
         const data = await res.json();
         if (data.status === 'success' || data.mood_data !== undefined) {
           setReportData(data);
@@ -128,7 +128,8 @@ const Report = ({ user, onUpdateUser }) => {
       const res = await fetch(`${API_BASE_URL}/api/report/analysis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user?.id || 1 }),
+        body: JSON.stringify({}),
+        credentials: 'include',
       });
       const data = await res.json();
       setAiAnalysis(data.status === 'success' ? data.analysis : 'Analysis unavailable right now.');
@@ -141,9 +142,10 @@ const Report = ({ user, onUpdateUser }) => {
 
   const upgradePremium = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/buy_premium/${user.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/buy-premium`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ plan: 'monthly' }),
       });
       const result = await response.json();

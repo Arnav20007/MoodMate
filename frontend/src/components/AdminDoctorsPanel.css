@@ -1,0 +1,227 @@
+.admin-doctors-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  height: 100%;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(245, 243, 239, 0.92));
+}
+
+.admin-doctors-header,
+.admin-doctors-layout,
+.admin-password-box,
+.admin-status {
+  border-radius: 22px;
+  border: 1px solid rgba(74, 124, 89, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 34px rgba(44, 62, 48, 0.05);
+}
+
+.admin-doctors-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+}
+
+.admin-doctors-kicker {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(74, 124, 89, 0.1);
+  color: #355c41;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-doctors-header h2 {
+  margin: 10px 0 6px;
+  color: #23382c;
+}
+
+.admin-doctors-header p {
+  margin: 0;
+  color: #6b7c6e;
+  line-height: 1.6;
+}
+
+.admin-doctors-header-actions,
+.admin-actions,
+.admin-password-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-primary-btn,
+.admin-secondary-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 16px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-primary-btn {
+  background: linear-gradient(135deg, #355c41, #4a7c59);
+  color: white;
+}
+
+.admin-secondary-btn {
+  background: #edf4f0;
+  color: #355c41;
+}
+
+.admin-status {
+  padding: 14px 16px;
+}
+
+.admin-status.success {
+  color: #166534;
+}
+
+.admin-status.error {
+  color: #b91c1c;
+}
+
+.admin-doctors-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 18px;
+  padding: 18px;
+  min-height: 0;
+  flex: 1;
+}
+
+.admin-doctors-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-list-heading {
+  color: #6b7c6e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.admin-doctor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(74, 124, 89, 0.1);
+  background: #f8faf8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-doctor-row.selected {
+  border-color: #4a7c59;
+  background: #edf4f0;
+}
+
+.admin-doctor-row strong {
+  color: #23382c;
+}
+
+.admin-doctor-row span,
+.admin-doctor-row small,
+.admin-loading {
+  color: #6b7c6e;
+}
+
+.admin-doctors-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-doctors-form label {
+  display: grid;
+  gap: 8px;
+  color: #355c41;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-doctors-form input,
+.admin-doctors-form select,
+.admin-doctors-form textarea {
+  width: 100%;
+  border: 1px solid #d8e1da;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f8faf8;
+  color: #24392c;
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.admin-doctors-form textarea {
+  resize: vertical;
+}
+
+.admin-checkbox {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.admin-password-box {
+  padding: 18px;
+}
+
+.admin-password-box h3 {
+  margin: 0 0 8px;
+  color: #23382c;
+}
+
+.admin-password-box p {
+  margin: 0 0 12px;
+  color: #6b7c6e;
+}
+
+.admin-password-row input {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .admin-doctors-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-doctors-panel,
+  .admin-doctors-layout,
+  .admin-doctors-header {
+    padding: 14px;
+  }
+
+  .admin-grid,
+  .admin-password-row,
+  .admin-actions,
+  .admin-doctors-header-actions {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

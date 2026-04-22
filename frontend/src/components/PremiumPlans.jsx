@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import './PremiumPlans.css'; // Your existing CSS file will work perfectly
+import './PremiumPlans.css'; 
 import { API_BASE_URL } from '../api';
 
 const PremiumPlans = ({ user, onSubscribe, onClose }) => {
   const [selectedPlan, setSelectedPlan] = useState('annual');
   const [promoCode, setPromoCode] = useState('');
-  const [promoMessage, setPromoMessage] = useState(''); // Default to the best value plan
+  const [promoMessage, setPromoMessage] = useState('');
 
-  // ✅ The complete 6-plan structure
   const plans = [
     {
       id: 'weekly',
@@ -38,7 +37,7 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
       highlight: false,
     },
     {
-      id: 'quarterly', // The missing plan
+      id: 'quarterly',
       name: 'Quarterly Pro',
       price: '₹749',
       period: '/3 months',
@@ -63,7 +62,7 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
         'Early Access to New Features',
         'One-on-One Onboarding Call'
       ],
-      highlight: true, // This will make it stand out
+      highlight: true,
       savings: 'Save 44%',
     },
     {
@@ -103,11 +102,12 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
     }
     
     try {
-      const response = await fetch(`${API_BASE_URL}/buy_premium/${user.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/user/buy-premium`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           plan: selectedPlan
         })
@@ -117,7 +117,6 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
         onSubscribe(selectedPlan);
         onClose();
         
-        // Throw a quick toast for good measure
         const t = document.createElement('div');
         t.innerHTML = `<span>✨ Welcome to Premium! All features unlocked.</span><button style="background:transparent;border:none;color:white;cursor:pointer;font-weight:bold;margin-left:12px;opacity:0.8;font-size:16px;">✕</button>`;
         t.style.cssText = 'display:flex;align-items:center;position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;font-family:Inter,sans-serif;box-shadow:0 10px 25px rgba(16,185,129,0.3)';
@@ -137,7 +136,6 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
   const applyPromoCode = () => {
     if (['BETA100', 'FREEPREMIUM', 'MOODMATEVIP'].includes(promoCode.toUpperCase().trim())) {
        setPromoMessage('✅ Promo Code Applied! 100% Off.');
-       // Mock the subscription instantly for the user
        setTimeout(() => {
            onSubscribe('lifetime');
            onClose();
@@ -173,75 +171,75 @@ const PremiumPlans = ({ user, onSubscribe, onClose }) => {
               <p>Choose the plan that's right for your wellness journey.</p>
             </div>
 
-        <div className="plans-container">
-          {plans.map((plan) => (
-            <div 
-              key={plan.id} 
-              className={`plan-card ${plan.highlight ? 'highlight' : ''} ${selectedPlan === plan.id ? 'selected' : ''}`}
-              onClick={() => setSelectedPlan(plan.id)}
-            >
-              {plan.highlight && <div className="best-value-badge">BEST VALUE</div>}
-              {plan.id === 'lifetime' && <div className="lifetime-badge">🔥 LIFETIME</div>}
-              
-              <h3>{plan.name}</h3>
-              <div className="price">
-                <span className="price-amount">{plan.price}</span>
-                <span className="price-period">{plan.period}</span>
-              </div>
-              
-              {plan.savings && <div className="savings-badge">{plan.savings}</div>}
-              
-              <p className="plan-description">{plan.description}</p>
-              
-              <ul className="features-list">
-                {plan.features.map((feature, index) => (
-                  <li key={index}>✓ {feature}</li>
-                ))}
-              </ul>
+            <div className="plans-container">
+              {plans.map((plan) => (
+                <div 
+                  key={plan.id} 
+                  className={`plan-card ${plan.highlight ? 'highlight' : ''} ${selectedPlan === plan.id ? 'selected' : ''}`}
+                  onClick={() => setSelectedPlan(plan.id)}
+                >
+                  {plan.highlight && <div className="best-value-badge">BEST VALUE</div>}
+                  {plan.id === 'lifetime' && <div className="lifetime-badge">🔥 LIFETIME</div>}
+                  
+                  <h3>{plan.name}</h3>
+                  <div className="price">
+                    <span className="price-amount">{plan.price}</span>
+                    <span className="price-period">{plan.period}</span>
+                  </div>
+                  
+                  {plan.savings && <div className="savings-badge">{plan.savings}</div>}
+                  
+                  <p className="plan-description">{plan.description}</p>
+                  
+                  <ul className="features-list">
+                    {plan.features.map((feature, index) => (
+                      <li key={index}>✓ {feature}</li>
+                    ))}
+                  </ul>
 
-              <div className="select-indicator">
-                {selectedPlan === plan.id ? '✓ Selected' : 'Select Plan'}
-              </div>
+                  <div className="select-indicator">
+                    {selectedPlan === plan.id ? '✓ Selected' : 'Select Plan'}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div className="plans-actions">
-          <div className="promo-code-section" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                  type="text" 
-                  value={promoCode} 
-                  onChange={(e) => setPromoCode(e.target.value)} 
-                  placeholder="Have a Promo Code?" 
-                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}
-                />
-                <button onClick={applyPromoCode} style={{ padding: '10px 16px', borderRadius: '8px', background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Apply</button>
+            <div className="plans-actions">
+              <div className="promo-code-section" style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text" 
+                      value={promoCode} 
+                      onChange={(e) => setPromoCode(e.target.value)} 
+                      placeholder="Have a Promo Code?" 
+                      style={{ padding: '10px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}
+                    />
+                    <button onClick={applyPromoCode} style={{ padding: '10px 16px', borderRadius: '8px', background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Apply</button>
+                </div>
+                {promoMessage && <span style={{ fontSize: '13px', color: promoMessage.includes('✅') ? '#10b981' : '#f43f5e' }}>{promoMessage}</span>}
+              </div>
+              <button 
+                className="subscribe-btn"
+                disabled={!selectedPlan}
+                onClick={handleSubscribe}
+              >
+                Upgrade to {selectedPlan ? plans.find(p => p.id === selectedPlan).name : 'Premium'}
+              </button>
+              <p className="security-note">
+                🔒 Secure payment. 7-day money-back guarantee.
+              </p>
             </div>
-            {promoMessage && <span style={{ fontSize: '13px', color: promoMessage.includes('✅') ? '#10b981' : '#f43f5e' }}>{promoMessage}</span>}
-          </div>
-          <button 
-            className="subscribe-btn"
-            disabled={!selectedPlan}
-            onClick={handleSubscribe}
-          >
-            Upgrade to {selectedPlan ? plans.find(p => p.id === selectedPlan).name : 'Premium'}
-          </button>
-          <p className="security-note">
-            🔒 Secure payment. 7-day money-back guarantee.
-          </p>
-        </div>
 
-        <div className="faq-section">
-          <h4>Frequently Asked Questions</h4>
-          <div className="faq-item">
-            <h5>Can I cancel anytime?</h5>
-            <p>Yes, you can cancel your subscription anytime from your profile settings. You'll maintain access until the end of your billing period.</p>
-          </div>
-          <div className="faq-item">
-            <h5>Do you offer refunds?</h5>
-            <p>We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied, just let us know.</p>
-          </div>
+            <div className="faq-section">
+              <h4>Frequently Asked Questions</h4>
+              <div className="faq-item">
+                <h5>Can I cancel anytime?</h5>
+                <p>Yes, you can cancel your subscription anytime from your profile settings. You'll maintain access until the end of your billing period.</p>
+              </div>
+              <div className="faq-item">
+                <h5>Do you offer refunds?</h5>
+                <p>We offer a 7-day money-back guarantee for all new subscriptions. If you're not satisfied, just let us know.</p>
+              </div>
             </div>
           </>
         )}

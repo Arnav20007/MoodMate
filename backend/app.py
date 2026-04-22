@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -12,15 +12,25 @@ import json
 import re
 import random
 import sqlite3
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
+import bcrypt
 import traceback
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from security import encrypt_data, decrypt_data
+from services.email_service import email_service
+import stripe
+from functools import wraps, lru_cache
+import time
 
 print("Starting application initialization...", flush=True)
-
 try:
     from auth import auth_bp 
     from services.ai_service import generate_ai_response
+    from doctor_seed import SAMPLE_DOCTORS
 except Exception as e:
     print(f"CRITICAL IMPORT ERROR: {e}")
     traceback.print_exc()
@@ -28,18 +38,36 @@ except Exception as e:
 # ========== Load Config ==========
 load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'moodmate.db')
+DB_PATH = os.environ.get('MOODMATE_DB_PATH') or os.path.join(BASE_DIR, 'moodmate.db')
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'a-super-secret-key-you-must-change')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+
+# --- Database Selection ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
+IS_POSTGRES = DATABASE_URL and DATABASE_URL.startswith('postgres')
 
 # ========== CORS Setup ==========
-CORS(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://moodmate-frontend.onrender.com", "*"])
+allowed_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://moodmate-frontend.onrender.com",
+]
+extra_origins = [origin.strip() for origin in (os.getenv("CORS_ALLOWED_ORIGINS") or "").split(",") if origin.strip()]
+CORS(app, supports_credentials=True, origins=allowed_origins + extra_origins)
+
+# ========== Rate Limiting ==========
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["500 per day", "100 per hour"],
+    storage_uri="memory://",
+)
 
 app.register_blueprint(auth_bp, url_prefix="/")
 
-
+# ========== Database Utilities ==========
 def safe_print(*parts):
     text = " ".join(str(part) for part in parts)
     try:
@@ -47,29 +75,121 @@ def safe_print(*parts):
     except UnicodeEncodeError:
         print(text.encode("ascii", "replace").decode("ascii"), flush=True)
 
+def dumps_json(value):
+    return json.dumps(value, ensure_ascii=True)
 
-# ========== Database Setup ==========
+def loads_json(value, default):
+    try:
+        return json.loads(value) if value else default
+    except Exception:
+        return default
+
+def fix_sql_for_db(query):
+    if IS_POSTGRES:
+        query = query.replace("AUTOINCREMENT", "")
+        query = query.replace("INTEGER PRIMARY KEY", "SERIAL PRIMARY KEY")
+        query = query.replace("DATETIME DEFAULT CURRENT_TIMESTAMP", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        query = query.replace("CREATE INDEX IF NOT EXISTS", "CREATE INDEX")
+    return query
+
+@contextmanager
+def get_db():
+    if IS_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+def seed_sample_doctors(conn):
+    cursor = conn.cursor()
+    for doctor in SAMPLE_DOCTORS:
+        placeholder = "%s" if IS_POSTGRES else "?"
+        query = f"""
+            INSERT INTO doctors (
+                id, name, initials, email, password_hash, specialization, experience_years,
+                languages_json, modes_json, price_per_session, rating, reviews_count,
+                badge, bio, license_info, qualifications_json, approaches_json,
+                focus_areas_json, best_for, first_session, cancellation_policy,
+                review_summary, availability_json, photo_url, is_verified,
+                profile_source, profile_status
+            )
+            VALUES ({', '.join([placeholder]*27)})
+        """
+        if IS_POSTGRES:
+            query += """
+                ON CONFLICT(id) DO UPDATE SET
+                    name = EXCLUDED.name, email = EXCLUDED.email, bio = EXCLUDED.bio,
+                    is_verified = EXCLUDED.is_verified, profile_source = EXCLUDED.profile_source
+            """
+        else:
+            query += """
+                ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name, email = excluded.email, bio = excluded.bio,
+                    is_verified = excluded.is_verified, profile_source = excluded.profile_source
+            """
+        
+        params = (
+            doctor["id"], doctor["name"], doctor["initials"], doctor["email"],
+            doctor["password_hash"], doctor["specialization"], doctor["experience_years"],
+            dumps_json(doctor["languages"]), dumps_json(doctor["modes"]),
+            doctor["price_per_session"], doctor["rating"], doctor["reviews_count"],
+            doctor["badge"], doctor["bio"], doctor["license_info"],
+            dumps_json(doctor["qualifications"]), dumps_json(doctor["approaches"]),
+            dumps_json(doctor["focus_areas"]), doctor["best_for"], doctor["first_session"],
+            doctor["cancellation_policy"], doctor["review_summary"],
+            dumps_json(doctor["availability"]), doctor["photo_url"], 1,
+            doctor["profile_source"], "active",
+        )
+        cursor.execute(query, params)
+
+def seed_default_admin(conn):
+    admin_email = os.getenv("MOODMATE_ADMIN_EMAIL", "admin@moodmate.in").strip().lower()
+    admin_password = os.getenv("MOODMATE_ADMIN_PASSWORD", "Admin123!Demo")
+    
+    placeholder = "%s" if IS_POSTGRES else "?"
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT id FROM users WHERE email = {placeholder}", (admin_email,))
+    existing = cursor.fetchone()
+    password_hash = bcrypt.hashpw(admin_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    
+    if existing:
+        user_id = existing[0]  # Both SQLite Row and plain psycopg2 tuple support index 0
+        cursor.execute(
+            f"UPDATE users SET username = {placeholder}, password_hash = {placeholder}, role = 'admin' WHERE id = {placeholder}",
+            ("MoodMate Admin", password_hash, user_id),
+        )
+    else:
+        cursor.execute(
+            f"INSERT INTO users (username, email, phone, password_hash, premium_plan, role) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+            ("MoodMate Admin", admin_email, "9000000000", password_hash, "annual", "admin"),
+        )
+
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    if IS_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect(DB_PATH)
+    
     cursor = conn.cursor()
     
-    # Existing tables
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             session_id TEXT NOT NULL DEFAULT 'default_session',
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             mood_detected TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history (session_id)')
+    '''))
     
-    # Updated users table with last_mood_tag
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT NOT NULL,
             email TEXT UNIQUE,
             phone TEXT UNIQUE,
@@ -87,56 +207,55 @@ def init_db():
             last_login DATE,
             role TEXT DEFAULT 'free'
         )
-    ''')
+    '''))
 
-    # Ensure last_mood_tag exists if table already existed
-    try:
-        cursor.execute('ALTER TABLE users ADD COLUMN last_mood_tag TEXT')
-    except sqlite3.OperationalError:
-        pass # Already exists
+    cursor.execute(fix_sql_for_db('''
+        CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            initials TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            specialization TEXT NOT NULL,
+            experience_years INTEGER DEFAULT 0,
+            languages_json TEXT DEFAULT '[]',
+            modes_json TEXT DEFAULT '[]',
+            price_per_session INTEGER DEFAULT 0,
+            rating REAL DEFAULT 0,
+            reviews_count INTEGER DEFAULT 0,
+            badge TEXT DEFAULT '',
+            bio TEXT DEFAULT '',
+            license_info TEXT DEFAULT '',
+            qualifications_json TEXT DEFAULT '[]',
+            approaches_json TEXT DEFAULT '[]',
+            focus_areas_json TEXT DEFAULT '[]',
+            best_for TEXT DEFAULT '',
+            first_session TEXT DEFAULT '',
+            cancellation_policy TEXT DEFAULT '',
+            review_summary TEXT DEFAULT '',
+            availability_json TEXT DEFAULT '[]',
+            photo_url TEXT DEFAULT '',
+            is_verified INTEGER DEFAULT 0,
+            profile_source TEXT DEFAULT 'sample',
+            profile_status TEXT DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
 
-    # Ensure last_mood_tag exists if table already existed
-    try:
-        cursor.execute('ALTER TABLE users ADD COLUMN last_mood_tag TEXT')
-    except sqlite3.OperationalError:
-        pass # Already exists
-
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN owned_items TEXT DEFAULT '[]'")
-    except sqlite3.OperationalError:
-        pass # Already exists
-
-    try:
-        cursor.execute("ALTER TABLE users ADD COLUMN premium_plan TEXT DEFAULT 'free'")
-    except sqlite3.OperationalError:
-        pass # Already exists
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+    cursor.execute(fix_sql_for_db('''
+        CREATE TABLE IF NOT EXISTS therapeutic_notes (
+            id SERIAL PRIMARY KEY,
             user_id INTEGER,
-            mood_data TEXT DEFAULT '{}',
-            journal_entries INTEGER DEFAULT 0,
-            meditation_minutes INTEGER DEFAULT 0,
-            challenges_completed INTEGER DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            doctor_id INTEGER,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    '''))
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS password_reset_otps (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            otp_code TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    ''')
-
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS therapy_bookings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER,
             doctor_id INTEGER NOT NULL,
             doctor_name TEXT NOT NULL,
@@ -150,77 +269,154 @@ def init_db():
             session_price INTEGER DEFAULT 0,
             status TEXT DEFAULT 'new',
             doctor_notes TEXT DEFAULT '',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            token_id TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    '''))
 
-    try:
-        cursor.execute("ALTER TABLE therapy_bookings ADD COLUMN session_price INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
-
-    # FEATURE 1: Daily Check-ins
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS daily_checkins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
-            date DATE DEFAULT (DATE('now')),
+            date DATE DEFAULT CURRENT_DATE,
             mood_tag TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
-    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_date ON daily_checkins (user_id, date)')
+    '''))
 
-    # FEATURE 5 & 6: Community Mood Wall & Reactions
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS community_posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
+            author_user_id INTEGER,
             mood_tag TEXT NOT NULL,
             content TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            visibility_status TEXT DEFAULT 'visible',
+            moderation_note TEXT DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
-    
-    cursor.execute('''
+    '''))
+
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS community_reactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             post_id INTEGER NOT NULL,
             reaction_type TEXT NOT NULL,
-            count INTEGER DEFAULT 0,
-            FOREIGN KEY (post_id) REFERENCES community_posts (id)
+            count INTEGER DEFAULT 0
         )
-    ''')
-    cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_post_reaction ON community_reactions (post_id, reaction_type)')
+    '''))
 
-    # FEATURE 9: Analytics
-    cursor.execute('''
+    cursor.execute(fix_sql_for_db('''
+        CREATE TABLE IF NOT EXISTS community_reports (
+            id SERIAL PRIMARY KEY,
+            post_id INTEGER NOT NULL,
+            reporter_user_id INTEGER NOT NULL,
+            reason TEXT NOT NULL,
+            details TEXT DEFAULT '',
+            status TEXT DEFAULT 'open',
+            resolution_note TEXT DEFAULT '',
+            reviewed_by_user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+
+    cursor.execute(fix_sql_for_db('''
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id SERIAL PRIMARY KEY,
+            actor_type TEXT NOT NULL,
+            actor_id INTEGER,
+            action TEXT NOT NULL,
+            entity_type TEXT,
+            entity_id INTEGER,
+            status TEXT DEFAULT 'success',
+            details_json TEXT DEFAULT '{}',
+            ip_address TEXT,
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    '''))
+
+    cursor.execute(fix_sql_for_db('''
         CREATE TABLE IF NOT EXISTS analytics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             metric_name TEXT NOT NULL,
             metric_value REAL NOT NULL,
-            date DATE DEFAULT (DATE('now')),
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            date DATE DEFAULT CURRENT_DATE,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    ''')
+    '''))
 
+    # --- Performance Indexes ---
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_doctors_rating ON doctors(rating DESC);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_bookings_user ON therapy_bookings(user_id);")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_history(session_id);")
+
+    seed_sample_doctors(conn)
+    seed_default_admin(conn)
     conn.commit()
     conn.close()
-    safe_print("Database initialized with retention features.")
+    safe_print(f"Database initialized on {'PostgreSQL' if IS_POSTGRES else 'SQLite'}")
 
 init_db()
 
-@contextmanager
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
+# ========== Auth & Decoration ==========
+def get_logged_in_user_id():
+    return session.get("user_id")
 
+def get_logged_in_doctor_id():
+    return session.get("doctor_id")
+
+def get_logged_in_user_row():
+    user_id = get_logged_in_user_id()
+    if not user_id: return None
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        cursor.execute(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,))
+        return cursor.fetchone()
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not get_logged_in_user_id(): return error_response("Sign in required.", 401)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_logged_in_user_row()
+        if not user or (user["role"] or "free") != "admin":
+            return error_response("Admin access required.", 403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ========== Core Functions ==========
+def log_audit_event(action, status="success", actor_type="system", actor_id=None, entity_type=None, entity_id=None, details=None):
+    try: meta = {"ip_address": request.headers.get("X-Forwarded-For", request.remote_addr), "user_agent": request.headers.get("User-Agent", "")[:255]}
+    except RuntimeError: meta = {"ip_address": None, "user_agent": ""}
+    placeholder = "%s" if IS_POSTGRES else "?"
+    query = f"INSERT INTO audit_logs (actor_type, actor_id, action, entity_type, entity_id, status, details_json, ip_address, user_agent) VALUES ({', '.join([placeholder]*9)})"
+    try:
+        with get_db() as conn:
+            conn.cursor().execute(query, (actor_type, actor_id, action, entity_type, entity_id, status, dumps_json(details or {}), meta["ip_address"], meta["user_agent"]))
+            conn.commit()
+    except Exception as e: safe_print("Audit error:", e)
+
+def detect_mood(msg):
+    if not msg: return "neutral"
+    msg_l = msg.lower()
+    keywords = {
+        "happy": ["happy", "good", "great", "awesome", "excited", "joy", "smile", "khush", "achha"],
+        "sad": ["sad", "depressed", "unhappy", "cry", "tears", "udasi", "dukhi", "lonely"],
+        "angry": ["angry", "mad", "furious", "gussa", "irritated", "hate"],
+        "anxious": ["anxious", "nervous", "worried", "stress", "tension", "chinta", "panic"],
+    }
+    for m, k in keywords.items():
+        if any(w in msg_l for w in k): return m
+    return "neutral"
 
 def serialize_booking(row):
     return {
@@ -237,1032 +433,261 @@ def serialize_booking(row):
         "mode": row["session_mode"] or "Video",
         "coins": row["session_price"] or 0,
         "status": row["status"],
-        "notes": row["doctor_notes"] or "",
-        "created_at": row["created_at"],
-        "updated_at": row["updated_at"],
+        "notes": decrypt_data(row["doctor_notes"]) if row.get("doctor_notes") else "",
+        "created_at": str(row["created_at"]),
     }
 
+def error_response(message, status_code=400):
+    return jsonify({"success": False, "message": message}), status_code
 
-@app.route('/api/therapy/bookings', methods=['GET', 'POST'])
-def therapy_bookings():
-    if request.method == 'GET':
-        user_id = request.args.get('user_id')
-        doctor_id = request.args.get('doctor_id')
-
-        query = """
-            SELECT *
-            FROM therapy_bookings
-        """
-        params = []
-
-        if doctor_id:
-            query += " WHERE doctor_id = ?"
-            params.append(doctor_id)
-        elif user_id:
-            query += " WHERE user_id = ?"
-            params.append(user_id)
-
-        query += " ORDER BY created_at DESC"
-
-        with get_db() as conn:
-            rows = conn.execute(query, params).fetchall()
-
-        return jsonify({
-            "success": True,
-            "bookings": [serialize_booking(row) for row in rows]
-        }), 200
-
-    data = request.json or {}
-    required_fields = {
-        "doctor_id": "doctor",
-        "doctor_name": "doctor name",
-        "name": "patient name",
-        "phone": "phone",
-        "reason": "concern",
-        "time": "slot",
-    }
-
-    missing = [label for field, label in required_fields.items() if not str(data.get(field) or "").strip()]
-    if missing:
-        return jsonify({
-            "success": False,
-            "message": f"Missing required booking fields: {', '.join(missing)}."
-        }), 400
-
+# ========== Community Routes ==========
+@app.route('/api/community/posts', methods=['GET'])
+def list_community_posts():
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            INSERT INTO therapy_bookings (
-                user_id,
-                doctor_id,
-                doctor_name,
-                patient_name,
-                patient_age,
-                patient_gender,
-                patient_phone,
-                concern,
-                slot,
-                session_mode,
-                session_price
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                data.get("user_id"),
-                int(data["doctor_id"]),
-                str(data["doctor_name"]).strip(),
-                str(data["name"]).strip(),
-                str(data.get("age") or "").strip(),
-                str(data.get("gender") or "").strip(),
-                str(data["phone"]).strip(),
-                str(data["reason"]).strip(),
-                str(data["time"]).strip(),
-                str(data.get("mode") or "Video").strip(),
-                int(data.get("price") or 0),
-            )
-        )
-        booking_id = cursor.lastrowid
-        conn.commit()
-        row = conn.execute(
-            "SELECT * FROM therapy_bookings WHERE id = ?",
-            (booking_id,)
-        ).fetchone()
+        rows = cursor.execute("SELECT * FROM community_posts WHERE visibility_status = 'visible' ORDER BY created_at DESC").fetchall()
+        posts = [dict(row) for row in rows]
+        
+        # Fetch reactions
+        for post in posts:
+            cursor.execute("SELECT reaction_type, count FROM community_reactions WHERE post_id = ?", (post['id'],))
+            re_rows = cursor.fetchall()
+            post['reactions'] = {r['reaction_type']: r['count'] for r in re_rows}
+            
+    return jsonify({"success": True, "posts": posts})
 
-    return jsonify({
-        "success": True,
-        "message": "Session booked successfully.",
-        "booking": serialize_booking(row)
-    }), 201
-
-
-@app.route('/api/therapy/bookings/<int:booking_id>', methods=['PATCH'])
-def update_therapy_booking(booking_id):
-    data = request.json or {}
-    updates = []
-    params = []
-
-    if "status" in data:
-        status = str(data.get("status") or "").strip().lower()
-        if status not in {"new", "upcoming", "completed", "declined"}:
-            return jsonify({
-                "success": False,
-                "message": "Invalid booking status."
-            }), 400
-        updates.append("status = ?")
-        params.append(status)
-
-    if "notes" in data:
-        updates.append("doctor_notes = ?")
-        params.append(str(data.get("notes") or "").strip())
-
-    if not updates:
-        return jsonify({
-            "success": False,
-            "message": "No booking updates were provided."
-        }), 400
-
-    updates.append("updated_at = CURRENT_TIMESTAMP")
-    params.append(booking_id)
-
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            f"UPDATE therapy_bookings SET {', '.join(updates)} WHERE id = ?",
-            params
-        )
-        if cursor.rowcount == 0:
-            return jsonify({
-                "success": False,
-                "message": "Booking not found."
-            }), 404
-        conn.commit()
-        row = conn.execute(
-            "SELECT * FROM therapy_bookings WHERE id = ?",
-            (booking_id,)
-        ).fetchone()
-
-    return jsonify({
-        "success": True,
-        "message": "Booking updated successfully.",
-        "booking": serialize_booking(row)
-    }), 200
-
-
-
-def shop_purchase_legacy():
+@app.route('/api/community/posts', methods=['POST'])
+@login_required
+def create_community_post():
+    user_id = get_logged_in_user_id()
     data = request.json
-    user_id = data.get('user_id')
-    item_id = data.get('item_id')
-    price = data.get('price')
-
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT coins, owned_items FROM users WHERE id = ?", (user_id,))
-            user = cursor.fetchone()
-            
-            if not user:
-                return jsonify({'error': 'User not found'}), 404
-                
-            current_coins = user['coins']
-            if current_coins < price:
-                return jsonify({'error': 'Not enough coins'}), 400
-
-            new_balance = current_coins - price
-            
-            owned = []
-            try:
-                owned = json.loads(user['owned_items'] or '[]')
-            except:
-                pass
-                
-            if item_id not in owned:
-                owned.append(item_id)
-                
-            cursor.execute("UPDATE users SET coins = ?, owned_items = ? WHERE id = ?", (new_balance, json.dumps(owned), user_id))
-            conn.commit()
-            return jsonify({'status': 'success', 'new_balance': new_balance, 'purchased_items': owned})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ========== AI Configuration ==========
-ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
-ELEVENLABS_VOICE_ID = os.getenv('ELEVENLABS_VOICE_ID', 'pNInz6obpgDQGcFmaJgB')
-HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
-
-safe_print("ElevenLabs TTS:", "Loaded" if ELEVENLABS_API_KEY else "Not configured")
-safe_print("Hugging Face BERT:", "Loaded" if HUGGINGFACE_API_KEY else "Not configured")
-
-# ========== Audio Setup ==========
-AUDIO_FOLDER = os.path.join('static', 'audio')
-os.makedirs(AUDIO_FOLDER, exist_ok=True)
-
-# ========== Mood Configuration ==========
-MOOD_CATEGORIES = [
-    "happy", "sad", "angry", "anxious", "lonely", "nostalgic", "excited", "calm",
-    "confused", "hopeful", "grateful", "frustrated", "motivated", "tired",
-    "bored", "content", "worried", "proud", "guilty", "relaxed", "energetic", "peaceful"
-]
-
-MOOD_EMOJIS = {
-    "happy": "😊", "sad": "😢", "angry": "😠", "anxious": "😰", "lonely": "👤",
-    "nostalgic": "📸", "excited": "🎉", "calm": "😌", "confused": "😕", "hopeful": "🌟",
-    "grateful": "🙏", "frustrated": "😤", "motivated": "💪", "tired": "😴", "bored": "😑",
-    "content": "😊", "worried": "😟", "proud": "🦁", "guilty": "😔", "relaxed": "🧘",
-    "energetic": "⚡", "peaceful": "☮"
-}
-
-MOOD_PHRASES = {
-    "happy": "Khush raho hamesha - aapki muskaan ki wajah kuch hai.",
-    "sad": "Yeh bhi beet jayega - thodi si ummeed rakho.",
-    "angry": "Gehre saans lo - har gussa kuch sikha kar jaata hai.",
-    "anxious": "Shaant rehna seekho, sab dheere-dheere theek hoga.",
-    "lonely": "Tanhai mein bhi khud se dosti karna seekho.",
-    "nostalgic": "Yaadein hain - unhe muskaan se sajeev rakho.",
-    "excited": "Utsaah banaye rakho - choti jeet badi banti hai.",
-    "calm": "Shaanti mein hi sachcha aaram milta hai.",
-    "confused": "Sawaalon ka jawab waqt ke saath aata hai.",
-    "hopeful": "Aasha rakho - yeh disha badal deti hai.",
-    "grateful": "Choti kritagyataein bada fark laati hain.",
-    "frustrated": "Rukawatein naye raaste dikhaati hain.",
-    "motivated": "Aaj ek chota qadam, kal badi manzil.",
-    "tired": "Aaram lo - phir se shuru karna aasaan hoga.",
-    "bored": "Naya kuch seekho - jigyasa mazedar hai.",
-    "content": "Santosh mein asli sukh hota hai.",
-    "worried": "Samaadhaan ki taraf ek chota qadam uthao.",
-    "proud": "Chote qadmon par garv karo - ve mayne rakhte hain.",
-    "guilty": "Galtiyon se seekhkar aage badho.",
-    "relaxed": "Aaram lo aur dheere-dheere aage badho.",
-    "energetic": "Urja banaye rakho - duniya tumhari hai!",
-    "peaceful": "Shaanti mein kho jao - sab kuch theek hai."
-}
-
-MOOD_CHALLENGES = [
-    "Aaj 5 minute dhyaan karo.",
-    "Kisi dost ko call karo.",
-    "Apni pasandeeda kitaab padho.",
-    "10 minute tahlo.",
-    "Ek achhi baat likho.",
-    "Parivaar ke saath samay bitao.",
-    "Khud ko taarif do.",
-    "Teen cheezon ke liye aabhari raho.",
-    "Ek naya gaana seekho.",
-    "Prakriti mein samay bitao."
-]
-
-# ========== Helper Functions ==========
-def add_coins_internal(user_id, coins):
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE users SET coins = coins + ? WHERE id = ?",
-                (coins, user_id)
-            )
-            conn.commit()
-    except Exception as e:
-        print("❌ Coin update error:", e)
-
-def detect_mood(msg: str) -> str:
-    if not msg:
-        return "neutral"
+    content = data.get('content', '')
+    mood_tag = data.get('mood_tag', 'neutral')
+    
+    # 2. AI MODERATION LAYER
+    # Simple keyword-based toxicity for demo, would use LLM in real prod
+    toxic_keywords = ["hate", "kill", "idiot", "stupid"]
+    is_toxic = any(k in content.lower() for k in toxic_keywords)
+    
+    visibility = "visible"
+    mod_note = ""
+    if is_toxic:
+        visibility = "hidden"
+        mod_note = "Auto-hidden by AI moderation for community safety."
         
-    print(f"🧠 [Hugging Face] Analyzing Tone: '{msg}'")
-    # 1. Primary Engine: Hugging Face (Hindi BERT / Multilingual Sentiment)
-    try:
-        if HUGGINGFACE_API_KEY:
-            API_URL = "https://api-inference.huggingface.co/models/lxyuan/distilbert-base-multilingual-cased-sentiments-student"
-            headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-            response = requests.post(API_URL, headers=headers, json={"inputs": msg}, timeout=4)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0 and isinstance(result[0], list):
-                    top_label = result[0][0].get('label', '').lower()
-                    print(f"✅ [Hugging Face] Detected Sentiment: {top_label}")
-                    if top_label == 'positive': return "happy"
-                    elif top_label == 'negative': return "sad"
-                    else: return "neutral"
-            else:
-                print(f"⚠️ [Hugging Face] API Error: {response.text}")
-    except Exception as e:
-        print(f"❌ [Hugging Face] Timeout or Error: {e}")
-        
-    print("🔄 [Hugging Face Fallback] Using naive dictionary pattern...")
-    # 2. Fallback Engine: Keywords
-    msg_lower = msg.lower()
-    mood_keywords = {
-        "happy": ["happy", "good", "great", "awesome", "excited", "joy", "smile", "khush", "achha", "wonderful"],
-        "sad": ["sad", "depressed", "unhappy", "cry", "tears", "upset", "udasi", "dukhi", "heartbroken", "lonely"],
-        "angry": ["angry", "mad", "furious", "annoyed", "gussa", "irritated", "hate", "frustrated"],
-        "anxious": ["anxious", "nervous", "worried", "stress", "tension", "chinta", "panic", "overwhelmed"],
-        "tired": ["tired", "exhausted", "sleepy", "fatigue", "thaka", "neend", "burnout"],
-    }
-    
-    for mood, keywords in mood_keywords.items():
-        if any(keyword in msg_lower for keyword in keywords):
-            return mood
-    
-    return "neutral"
-
-def save_audio_and_links(audio_bytes: bytes):
-    filename = f"{uuid.uuid4().hex}.mp3"
-    filepath = os.path.join(AUDIO_FOLDER, filename)
-    with open(filepath, "wb") as f:
-        f.write(audio_bytes)
-    b64 = base64.b64encode(audio_bytes).decode("utf-8")
-    return b64, f"/static/audio/{filename}"
-
-def elevenlabs_tts(text: str):
-    if not ELEVENLABS_API_KEY:
-        print("❌ ElevenLabs API key not configured")
-        return None, None
-    
-    try:
-        url = f"https://api.elevenlabs.io/v1/text-to-speech/{ELEVENLABS_VOICE_ID}"
-        headers = {
-            "xi-api-key": ELEVENLABS_API_KEY,
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "text": text,
-            "model_id": "eleven_monolingual_v1",
-            "voice_settings": {"stability": 0.7, "similarity_boost": 0.8}
-        }
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        if response.status_code == 200:
-            return save_audio_and_links(response.content)
-        else:
-            print(f"❌ ElevenLabs API error: {response.status_code} - {response.text}")
-            return None, None
-    except Exception as e:
-        print(f"❌ ElevenLabs TTS error: {e}")
-    
-    return None, None
-
-def gtts_fallback(text: str, lang: str = 'hi'):
-    try:
-        tts = gTTS(text=text, lang=lang, slow=False)
-        buf = BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        return save_audio_and_links(buf.read())
-    except Exception as e:
-        print(f"❌ gTTS error: {e}")
-        return None, None
-
-def ai_generate_reply(conversation_history: list, user_message: str, user_name: str = "friend") -> dict:
-    # Use AI Service (Local + API Fallback)
-    result = generate_ai_response(user_message, conversation_history)
-    ai_message = result["text"]
-    
-    # Identify bucket for chips and safety logic
-    def bucket(msg: str):
-        CRISIS = re.compile(r"(kill myself|suicide|end my life|die|harm myself|i want to die|self harm|cutting)", re.IGNORECASE)
-        SEVERE = re.compile(r"(depression|hopeless|worthless|can't go on|self harm|cutting)", re.IGNORECASE)
-        MILD = re.compile(r"(sad|down|stressed|anxious|not ok|lonely|tired|overwhelmed)", re.IGNORECASE)
-        POS = re.compile(r"(grateful|happy|excited|proud|good day)", re.IGNORECASE)
-        
-        if CRISIS.search(msg): return "CRISIS"
-        if SEVERE.search(msg): return "SEVERE_NEG"
-        if POS.search(msg): return "NEUTRAL_POS"
-        if MILD.search(msg): return "MILD_NEG"
-        return "CASUAL"
-    
-    message_bucket = bucket(user_message)
-    
-    # Generate appropriate chips
-    chips = []
-    if "sad" in user_message.lower() or "depress" in user_message.lower():
-        chips = ["Talk about it", "Positive activity", "Call a friend"]
-    elif "stress" in user_message.lower() or "anxious" in user_message.lower():
-        chips = ["Breathing exercise", "Grounding technique", "Take a break"]
-    elif "angry" in user_message.lower() or "frustrated" in user_message.lower():
-        chips = ["Count to 10", "Walk it off", "Express feelings"]
-    else:
-        chips = ["Tell me more", "How can I help?", "Change topic"]
-    
-    return {
-        "message": ai_message,
-        "chips": chips,
-        "safety_check": message_bucket == "CRISIS",
-        "source": result["source"],
-        "fallback_used": result["fallback_used"]
-    }
-
-def log_chat(session_id: str, role: str, content: str, mood: str = None):
     with get_db() as conn:
         cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
         cursor.execute(
-            "INSERT INTO chat_history (session_id, role, content, mood_detected) VALUES (?, ?, ?, ?)",
-            (session_id, role, content, mood)
+            f"INSERT INTO community_posts (author_user_id, mood_tag, content, visibility_status, moderation_note) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})",
+            (user_id, mood_tag, content, visibility, mod_note)
         )
         conn.commit()
+        
+    if is_toxic:
+        return jsonify({"success": False, "message": "Your post is being reviewed for community guidelines."}), 202
+        
+    return jsonify({"success": True, "message": "Post shared!"})
 
-def get_chat_history(session_id: str, limit: int = 10):
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT role, content, timestamp FROM chat_history WHERE session_id = ? ORDER BY timestamp ASC LIMIT ?",
-            (session_id, limit)
-        )
-        return [dict(row) for row in cursor.fetchall()]
+# ========== Caching ==========
+_DOCTOR_CACHE = {"data": None, "expiry": 0}
+CACHE_TTL = 300 # 5 minutes
 
-def detect_crisis_intent(message: str) -> bool:
-    if not message:
-        return False
+def get_cached_doctors():
+    global _DOCTOR_CACHE
+    if _DOCTOR_CACHE["data"] and time.time() < _DOCTOR_CACHE["expiry"]:
+        return _DOCTOR_CACHE["data"]
     
-    crisis_keywords = [
-        "suicide", "kill myself", "end my life", "want to die", 
-        "harm myself", "self harm", "cutting", "no reason to live",
-        "better off without me", "can't go on", "give up",
-        "marne wala", "maut", "zindagi khatam", "jaan de dunga", "mar jau", "atmanhatya"
-    ]
-    
-    message_lower = message.lower()
-    return any(keyword in message_lower for keyword in crisis_keywords)
-
-def update_retention_data(user_id, current_mood=None):
-    """Handles daily check-ins, streak tracking, and emotional memory."""
     with get_db() as conn:
         cursor = conn.cursor()
-        today = datetime.now().date().isoformat()
-        
-        # 1. Update Emotional Memory (Last Mood Tag)
-        if current_mood:
-            cursor.execute("UPDATE users SET last_mood_tag = ? WHERE id = ?", (current_mood, user_id))
-        
-        # 2. Daily Check-in & Streak Logic
-        cursor.execute("SELECT id FROM daily_checkins WHERE user_id = ? AND date = ?", (user_id, today))
-        if not cursor.fetchone():
-            # First interaction of the day
-            cursor.execute("INSERT INTO daily_checkins (user_id, mood_tag) VALUES (?, ?)", (user_id, current_mood))
-            
-            # Update Streak
-            cursor.execute("SELECT last_login, streak FROM users WHERE id = ?", (user_id,))
-            user = cursor.fetchone()
-            if user:
-                last_login = user['last_login']
-                streak = user['streak'] or 0
-                
-                if last_login:
-                    # Robust date parsing - handle both 'YYYY-MM-DD' and full datetime strings
-                    try:
-                        last_login_date = datetime.strptime(str(last_login)[:10], '%Y-%m-%d').date()
-                    except (ValueError, TypeError):
-                        last_login_date = None
-                    
-                    if last_login_date:
-                        delta = datetime.now().date() - last_login_date
-                        if delta.days == 1:
-                            streak += 1
-                        elif delta.days > 1:
-                            streak = 1
-                        # If delta.days == 0, already checked in today
-                else:
-                    streak = 1
-                
-                cursor.execute("UPDATE users SET streak = ?, last_login = ? WHERE id = ?", (streak, today, user_id))
-            
-            # 3. Analytics (DAU & Check-ins)
-            track_metric("daily_active_users", 1)
-            track_metric("checkins_per_day", 1)
-            
-        conn.commit()
-
-def track_metric(name, value):
-    """Helper to track retention metrics."""
-    try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            today = datetime.now().date().isoformat()
-            cursor.execute("""
-                INSERT INTO analytics (metric_name, metric_value, date) 
-                VALUES (?, ?, ?)
-            """, (name, value, today))
-            conn.commit()
-    except Exception as e:
-        print(f"Analytics error: {e}")
-
-def get_emotional_memory_context(user_id, client_username="Friend"):
-    """Retrieves long-term emotional context (past 7 days) and current login streak to provide deep continuity."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # Get user details
-        cursor.execute("SELECT username, streak, last_login FROM users WHERE id = ?", (user_id,))
-        user_row = cursor.fetchone()
-        
-        if not user_row:
-            username = client_username
-            streak = 1
-        else:
-            username = client_username if client_username != "Friend" else (user_row['username'] or "Friend")
-            streak = user_row['streak'] or 0
-        
-        # Fetch last 7 days of moods
-        seven_days_ago = (datetime.now() - timedelta(days=7)).date().isoformat()
-        cursor.execute("SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", (user_id, seven_days_ago))
-        checkins = cursor.fetchall()
-        
-        if not checkins:
-            return f"[SYSTEM DIRECTIVE]: The user's name is {username}. This is their first time interacting recently. Be highly welcoming."
-            
-        trends = ", ".join([f"{c['date'][5:]}: {c['mood_tag']}" for c in checkins[-5:]])
-        last_mood = checkins[-1]['mood_tag'] if checkins else 'neutral'
-        
-        memory_prompt = (
-            f"[SYSTEM DIRECTIVE & MEMORY]: The user's name is {username}. They currently have a {streak}-day app usage streak. "
-            f"Here is their recent mood trend over the last few days: [{trends}]. "
-            f"Their most recent recorded mood is {last_mood}. "
-            "Use this emotional context to respond. If they seem stuck in a negative trend pattern (like 'sad' multiple days in a row), gently acknowledge it and offer a brief Cognitive Behavioral Therapy (CBT) reframing exercise or mindfulness tip. Do not sound like a robot reading a log."
-        )
-        
-        return memory_prompt
+        cursor.execute("SELECT * FROM doctors WHERE profile_status = 'active' ORDER BY rating DESC")
+        rows = cursor.fetchall()
+        doctors = [dict(r) for r in rows]
+        _DOCTOR_CACHE = {"data": doctors, "expiry": time.time() + CACHE_TTL}
+        return doctors
 
 # ========== API Routes ==========
-@app.route('/api/user/status', methods=['GET'])
-def get_user_status():
-    user_id = request.args.get('user_id', 1)
-    try:
-        user_id = int(user_id)
-    except (ValueError, TypeError):
-        user_id = 1
+@app.route('/api/doctors', methods=['GET'])
+def list_doctors():
+    doctors = get_cached_doctors()
+    return jsonify({"success": True, "doctors": doctors})
 
-    # Always return a valid response — never 404
-    default_response = {
-        "status": "success",
-        "streak": 0,
-        "last_mood": "neutral",
-        "coins": 0,
-        "is_premium": False,
-        "premium_plan": "free",
-        "purchased_items": [],
-        "checked_in_today": False,
-        "total_checkins": 0,
-        "wellness_score": 70
-    }
-
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        # Safe query — only columns that definitely exist
-        cursor.execute("SELECT id, streak, coins, premium_plan, owned_items FROM users WHERE id = ?", (user_id,))
-        user = cursor.fetchone()
-
-        if not user:
-            conn.close()
-            return jsonify(default_response)
-
-        today = datetime.now().date()
-
-        # Check-in Status
-        cursor.execute("SELECT id FROM daily_checkins WHERE user_id = ? AND date = ?", (user_id, today.isoformat()))
-        checked_in = cursor.fetchone() is not None
-
-        # Total check-ins
-        cursor.execute("SELECT COUNT(*) FROM daily_checkins WHERE user_id = ?", (user_id,))
-        total_checkins = cursor.fetchone()[0]
-
-        # Try to get last_mood_tag safely
-        last_mood = "neutral"
-        try:
-            cursor.execute("SELECT last_mood_tag FROM users WHERE id = ?", (user_id,))
-            mood_row = cursor.fetchone()
-            if mood_row and mood_row[0]:
-                last_mood = mood_row[0]
-        except Exception:
-            pass
-
-        try:
-            purchased_items = json.loads(user['owned_items'] or '[]')
-        except Exception:
-            purchased_items = []
-
-        conn.close()
-        return jsonify({
-            "status": "success",
-            "streak": user['streak'] or 0,
-            "coins": user['coins'] or 0,
-            "is_premium": (user['premium_plan'] or 'free') != 'free',
-            "premium_plan": user['premium_plan'] or 'free',
-            "purchased_items": purchased_items,
-            "total_checkins": total_checkins,
-            "last_mood": last_mood,
-            "checked_in_today": checked_in,
-            "wellness_score": 70
-        })
-
-    except Exception as e:
-        try:
-            conn.close()
-        except Exception:
-            pass
-        return jsonify(default_response)
-
-@app.route('/api/community/posts', methods=['GET', 'POST'])
-def community_posts():
+@app.route('/api/therapy/bookings', methods=['GET', 'POST'])
+@login_required
+def therapy_bookings():
+    user_id = get_logged_in_user_id()
     if request.method == 'POST':
         data = request.json
-        mood = data.get('mood_tag')
-        content = data.get('content')
-        if not mood or not content:
-            return jsonify({"status": "error", "message": "Mood and content required"}), 400
-            
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO community_posts (mood_tag, content) VALUES (?, ?)", (mood, content))
-            track_metric("community_posts_per_day", 1)
+            placeholder = "%s" if IS_POSTGRES else "?"
+            cursor.execute(f"INSERT INTO therapy_bookings (user_id, doctor_id, doctor_name, patient_name, patient_phone, concern, slot, session_mode, session_price, status) VALUES ({', '.join([placeholder]*10)})",
+                           (user_id, data['doctor_id'], data['doctor_name'], data['name'], data['phone'], data['reason'], data['time'], data.get('mode', 'Video'), 0, 'new'))
+            
+            # Fetch user email for confirmation
+            cursor.execute(f"SELECT email FROM users WHERE id = {placeholder}", (user_id,))
+            user_row = cursor.fetchone()
             conn.commit()
-            
-        return jsonify({"status": "success"})
-    else:
-        with get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id, mood_tag, content, created_at FROM community_posts ORDER BY created_at DESC LIMIT 50")
-            posts = [dict(row) for row in cursor.fetchall()]
-            
-            # Fetch reactions for each post
-            for post in posts:
-                cursor.execute("SELECT reaction_type, count FROM community_reactions WHERE post_id = ?", (post['id'],))
-                reactions_data = cursor.fetchall()
-                post['reactions'] = {row['reaction_type']: row['count'] for row in reactions_data}
-                
-            return jsonify({"status": "success", "posts": posts})
 
-@app.route('/api/community/react', methods=['POST'])
-def react_to_post():
-    data = request.json
-    post_id = data.get('post_id')
-    reaction = data.get('reaction_type')
-    
-    if not post_id or not reaction:
-        return jsonify({"status": "error", "message": "post_id and reaction_type required"}), 400
+            if user_row and user_row['email']:
+                email_service.send_booking_confirmation(
+                    user_row['email'], 
+                    data['doctor_name'], 
+                    data['time']
+                )
 
-    with get_db() as conn:
-        cursor = conn.cursor()
-        # Using a pattern compatible with older SQLite versions if ON CONFLICT is missing
-        cursor.execute("SELECT id FROM community_reactions WHERE post_id = ? AND reaction_type = ?", (post_id, reaction))
-        row = cursor.fetchone()
-        if row:
-            cursor.execute("UPDATE community_reactions SET count = count + 1 WHERE id = ?", (row['id'],))
-        else:
-            cursor.execute("INSERT INTO community_reactions (post_id, reaction_type, count) VALUES (?, ?, 1)", (post_id, reaction))
-        conn.commit()
-        
-    return jsonify({"status": "success"})
-
-@app.route('/api/shop/purchase', methods=['POST'])
-def purchase_item():
-    data = request.json or {}
-    user_id = data.get('user_id', 1)
-    item_id = data.get('item_id')
-    price = data.get('price', 0)
-    
-    if not item_id:
-        return jsonify({"status": "error", "error": "Missing item ID"}), 400
-        
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT coins, owned_items FROM users WHERE id = ?", (user_id,))
-        user_row = cursor.fetchone()
-        
-        if not user_row:
-            return jsonify({"status": "error", "error": "User not found"}), 404
-            
-        coins = user_row['coins'] or 0
-        owned_items_json = user_row['owned_items'] or '[]'
-        
-        try:
-            import json
-            owned_items = json.loads(owned_items_json)
-        except:
-            owned_items = []
-            
-        if coins < price:
-            return jsonify({"status": "error", "error": "Not enough coins"}), 400
-            
-        if item_id in owned_items:
-            return jsonify({"status": "error", "error": "Item already owned"}), 400
-            
-        new_coins = coins - price
-        owned_items.append(item_id)
-        
-        import json
-        cursor.execute("UPDATE users SET coins = ?, owned_items = ? WHERE id = ?", (new_coins, json.dumps(owned_items), user_id))
-        conn.commit()
-        
-        return jsonify({
-            "status": "success",
-            "new_balance": new_coins,
-            "purchased_items": owned_items
-        })
-
-@app.route('/api/report', methods=['GET'])
-def get_report_data():
-    user_id = int(request.args.get('user_id', 1))
+        return jsonify({"success": True, "message": "Booked! Confirmation email sent."})
     
     with get_db() as conn:
         cursor = conn.cursor()
-        
-        # Get user details
-        cursor.execute("SELECT username, coins, streak FROM users WHERE id = ?", (user_id,))
-        user_row = cursor.fetchone()
-        
-        if not user_row:
-            # Return empty report for new users instead of 404
-            return jsonify({
-                "status": "success",
-                "user": {"username": "User", "coins": 0, "streak": 0},
-                "mood_data": [],
-                "mood_distribution": {},
-                "total_checkins": 0,
-                "avg_score": 70,
-                "streak": 0,
-                "coins": 0,
-                "top_mood": "neutral",
-                "wellness_trend": "stable"
-            })
-            
-        # Get mood data from daily checkins (last 30 days)
-        thirty_days_ago = (datetime.now() - timedelta(days=30)).date().isoformat()
-        cursor.execute(
-            "SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", 
-            (user_id, thirty_days_ago)
-        )
-        checkins = cursor.fetchall()
-        
-        # Standard mood baseline scores
-        mood_scores = {
-            "happy": 95, "excited": 90, "content": 85, "calm": 80, "relaxed": 80,
-            "neutral": 70, 
-            "tired": 50, "bored": 50, "confused": 45,
-            "sad": 30, "anxious": 25, "angry": 20, "lonely": 20, "frustrated": 20
-        }
-        
-        mood_emojis = {
-            "happy": "😊 Happy", "sad": "😔 Sad", "angry": "😠 Angry", "anxious": "😰 Anxious", 
-            "tired": "😴 Tired", "calm": "😌 Calm", "excited": "🎉 Excited", "neutral": "😐 Neutral"
-        }
-        
-        mood_data = []
-        mood_distribution = {}
-        for row in checkins:
-            mood_tag = (row['mood_tag'] or 'neutral').lower()
-            score = mood_scores.get(mood_tag, 70)
-            
-            try:
-                dt = datetime.strptime(row['date'], '%Y-%m-%d')
-                short_date = f"{dt.month}/{dt.day}"
-            except:
-                short_date = row['date']
-                
-            mood_str = mood_emojis.get(mood_tag, f"{mood_tag.capitalize()}")
-            mood_data.append({
-                "date": short_date,
-                "mood": mood_str,
-                "score": score,
-                "activities": 1
-            })
-            
-            mood_distribution[mood_str] = mood_distribution.get(mood_str, 0) + 1
-            
-        overall_score = 75
-        if mood_data:
-            overall_score = int(sum(d['score'] for d in mood_data) / len(mood_data))
-            
-        # If no check-ins, return empty lists so frontend shows clean empty state
-        if not mood_data:
-            mood_data = []
-            mood_distribution = {}
-            overall_score = 0
-            
-        return jsonify({
-            "status": "success",
-            "streak": user_row['streak'] or 0,
-            "coins": user_row['coins'] or 0,
-            "username": user_row['username'],
-            "completed_activities": len(checkins),
-            "overall_score": overall_score,
-            "mood_data": mood_data,
-            "mood_distribution": mood_distribution
-        })
+        placeholder = "%s" if IS_POSTGRES else "?"
+        rows = cursor.execute(f"SELECT * FROM therapy_bookings WHERE user_id = {placeholder} ORDER BY created_at DESC", (user_id,)).fetchall()
+    return jsonify({"success": True, "bookings": [serialize_booking(r) for r in rows]})
 
-@app.route('/api/report/analysis', methods=['POST'])
-def generate_report_analysis():
-    data = request.json or {}
-    user_id = data.get('user_id', 1)
-    
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
-        user_row = cursor.fetchone()
-        username = user_row['username'] if user_row else "Friend"
-        
-        # Get past 14 days of mood for deep analysis
-        fourteen_days_ago = (datetime.now() - timedelta(days=14)).date().isoformat()
-        cursor.execute("SELECT date, mood_tag FROM daily_checkins WHERE user_id = ? AND date >= ? ORDER BY date ASC", (user_id, fourteen_days_ago))
-        checkins = cursor.fetchall()
-        
-    if not checkins:
-        return jsonify({"status": "error", "analysis": "We need a few more days of check-ins to generate a deep cognitive analysis. Keep using MoodMate!"})
-
-    moods_list = ", ".join([f"{c['date'][5:]}: {c['mood_tag']}" for c in checkins])
-    
-    prompt = (
-        f"You are a world-class cognitive behavioral therapist. Your client is {username}. "
-        f"Over the last two weeks, they have logged the following emotional trajectory: [{moods_list}]. "
-        "Write a beautiful, highly personalized 3-paragraph mental wellness journal for them. "
-        "1. Identify any patterns in their mood.\n"
-        "2. Offer a warm, empathetic reflection on their emotional journey.\n"
-        "3. Provide a practical, actionable mindfulness or cognitive framing exercise tailored to their specific recent moods. "
-        "Format the response in visually pleasing Markdown with headers and bullet points where appropriate."
-    )
-    
-    print(f"🧠 [Deep Analysis] Generating for {username}...", flush=True)
-    try:
-        from services.ai_service import generate_api_response, generate_local_response, GROQ_API_KEY
-        if GROQ_API_KEY:
-            analysis = generate_api_response(prompt)
-        else:
-            analysis = generate_local_response(prompt)
-            
-        if not analysis:
-            analysis = "I'm having trouble analyzing your data right now. You are doing great, but please try again later."
-            
-        return jsonify({"status": "success", "analysis": analysis})
-    except Exception as e:
-        print(f"❌ Analysis Error: {e}")
-        return jsonify({"status": "error", "analysis": "Backend AI generation failed."})
-
-# NOTE: /api/shop/purchase is defined above (lines 602-646). Duplicate removed.
-
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        "status": "success",
-        "server": "MoodMate Backend",
-        "database": "connected" if os.path.exists(DB_PATH) else "not found",
-        "timestamp": datetime.now().isoformat()
-    })
+def is_crisis_msg(msg):
+    crisis_keywords = ["suicide", "kill myself", "end it all", "end my life", "suicidal", "want to die", "marna chahta"]
+    return any(k in msg.lower() for k in crisis_keywords)
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
-    try:
-        data = request.get_json()
-        msg = (data.get('message') or '').strip()
-        session_id = data.get('session_id', 'default_session')
-        user_id = data.get('user_id', 1)
-        user_name = data.get('user_name', 'Friend')
-        
-        if not msg:
-            return jsonify({"status": "error", "error": "Message cannot be empty"}), 400
-        
-        print(f"\n📨 Chat request from {user_name}: '{msg}'")
-        
-        # Check for crisis intent
-        is_crisis = detect_crisis_intent(msg)
-        if is_crisis:
-            reply_text = f"{user_name}… mujhe tumhari baat sunkar sach mein chinta ho rahi hai.\n\nMain yahin hoon tumhare saath. Saans dheere lo… tum safe ho… sab ek saath solve karne ki zarurat nahi hai.\n\nKya tum chahoge ki abhi hum kisi trusted contact ko call karein? Ya pehle thodi der yahi baat karni hai?\n\n---\n*Agar tum chaho, tum yahan call kar sakte ho — yeh log turant madad karte hain:*\n📞 **AASRA**: 91-9820466726\n📞 **Kiran (Govt)**: 1800-599-0019"
-            log_chat(session_id, "user", msg, "crisis")
-            log_chat(session_id, "ai", reply_text)
-            
-            return jsonify({
-                "status": "crisis",
-                "crisis": True,
-                "reply": reply_text,
-                "chips": ["Haan, madad bhejiye", "Pehle chalo baat karte hai", "Main apni saans par dhyan de raha hu"],
-                "timestamp": datetime.now().isoformat()
-            })
-        
-        mood = detect_mood(msg)
-        print(f"🎭 Mood detected: {mood}")
-        
-        # FEATURE 1 & 2 & 3: Retention Data & Emotional Memory
-        update_retention_data(user_id, mood)
-        emotional_memory = get_emotional_memory_context(user_id, user_name)
-        
-        log_chat(session_id, "user", msg, mood)
-        
-        history = get_chat_history(session_id, 6)
-        formatted_history = [{"role": row['role'], "content": row['content']} for row in history]
-        
-        # Inject Emotional Memory into Context
-        full_msg = f"{emotional_memory}\nUser: {msg}" if emotional_memory else msg
-        
-        ai_response = ai_generate_reply(formatted_history, full_msg, user_name)
-        log_chat(session_id, "ai", ai_response["message"])
-        
-        # Generate TTS
-        audio_base64 = None
-        audio_url = None
-        fallback_used = False
-        
-        audio_base64, audio_url = elevenlabs_tts(ai_response["message"])
-        if not audio_base64:
-            audio_base64, audio_url = gtts_fallback(ai_response["message"], 'hi')
-            fallback_used = True
-        
-        daily_challenge = random.choice(MOOD_CHALLENGES)
-        
-        coins_earned = 5
-        add_coins_internal(user_id, coins_earned)
-        
-        response_data = {
-            "status": "success",
-            "reply": ai_response["message"],
-            "mood": mood,
-            "moodEmoji": MOOD_EMOJIS.get(mood, "😊"),
-            "phrase": MOOD_PHRASES.get(mood, "You're doing great. Keep going!"),
-            "chips": ai_response["chips"],
-            "safetyCheck": ai_response["safety_check"],
-            "challenge": daily_challenge,
-            "audioUrl": audio_url,
-            "fallbackUsed": ai_response["fallback_used"],
-            "aiSource": ai_response["source"],
-            "coinsEarned": coins_earned,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        print(f"📤 Response sent: {response_data['reply'][:50]}...")
-        return jsonify(response_data)
-        
-    except Exception as e:
-        error_msg = f"❌ Chat Error: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        with open("error_log.txt", "a", encoding='utf-8') as f:
-            f.write(f"\n--- {datetime.now()} ---\n{error_msg}\n")
-            
+    data = request.json
+    msg = data.get('message', '')
+    user_id = data.get('user_id', 1)
+    session_id = data.get('session_id', 'default')
+    
+    # 1. HARD SAFETY OVERRIDE
+    if is_crisis_msg(msg):
+        log_audit_event("crisis_msg_detected", actor_type="user", actor_id=user_id, status="caution", details={"msg_hint": msg[:20]})
+        reply_text = (
+            "I'm very glad you're reaching out, but I'm an AI and not a crisis service. "
+            "Please reach out to someone who can help right now. "
+            "In India, you can call AASRA at +91-9820466726 or the KIRAN helpline at 1800-599-0019. "
+            "You are not alone."
+        )
         return jsonify({
-            "status": "success",
-            "reply": "I'm here for you. I had a small technical glitch, but tell me more about what's on your mind.",
-            "mood": "neutral",
-            "moodEmoji": "😊",
-            "phrase": "Everything will be okay.",
-            "chips": ["Tell me more", "I'm okay"],
-            "safetyCheck": False,
-            "challenge": "Breathe deeply for 1 minute.",
-            "fallbackUsed": True,
-            "coinsEarned": 0,
-            "timestamp": datetime.now().isoformat()
+            "status": "crisis",
+            "reply": reply_text,
+            "mood": "crisis",
+            "emergency": True
         })
 
-# [Keep all your other routes exactly as they are - therapists, shop, user, premium, etc.]
-
-@app.route('/api/therapists', methods=['GET'])
-def get_therapists():
-    therapists = [
-        {"id": 1, "name": "Dr. Arnav Singh", "specialization": "Clinical Psychology", 
-         "lang": ["hi","en"], "price": 799, "rating": 4.7, "experience": "8 years",
-         "modes": ["chat","call","video"], "avatar": "👨‍⚕️", "description": "Specialized in anxiety and depression"},
-        {"id": 2, "name": "Aaryan Kumar", "specialization": "Counseling Psychology", 
-         "lang": ["hi","en"], "price": 599, "rating": 4.5, "experience": "5 years",
-         "modes": ["chat","call"], "avatar": "👨‍💼", "description": "Focus on youth mental health"},
-        {"id": 3, "name": "Ankur Verma", "specialization": "Psychiatry", 
-         "lang": ["en"], "price": 999, "rating": 4.8, "experience": "12 years",
-         "modes": ["video"], "avatar": "👨‍⚕️", "description": "MD in Psychiatry with medication management"},
-        {"id": 4, "name": "Aanchal", "specialization": "Art Therapy", 
-         "lang": ["hi"], "price": 499, "rating": 4.6, "experience": "4 years",
-         "modes": ["chat","video"], "avatar": "👩‍🎨", "description": "Creative approaches to healing"},
-        {"id": 5, "name": "Aakash Patel", "specialization": "Cognitive Behavioral Therapy", 
-         "lang": ["hi","en","gu"], "price": 9, "rating": 4.9, "experience": "10 years",
-         "modes": ["chat","video"], "avatar": "👨‍🏫", "description": "CBT expert with focus on thought patterns"},
-        {"id": 6, "name": "Nitin", "specialization": "Mindfulness & Meditation", 
-         "lang": ["en","te","hi"], "price": 649, "rating": 4.7, "experience": "6 years",
-         "modes": ["video","call"], "avatar": "🧘‍♂️", "description": "Guided meditation and mindfulness practices"}
-    ]
-    return jsonify({"status": "success", "therapists": therapists})
-
-# [Keep all other routes exactly as you have them]
-
-@app.route('/buy_premium/<int:user_id>', methods=['POST', 'OPTIONS'])
-def buy_premium(user_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    data = request.json or {}
-    plan = data.get('plan', 'annual')
+    mood = detect_mood(msg)
+    reply_obj = generate_ai_response(msg, [])
+    reply_text = reply_obj["text"]
     
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    try:
-        try:
-            conn.execute("ALTER TABLE users ADD COLUMN premium_plan TEXT DEFAULT 'free'")
-            conn.commit()
-        except sqlite3.OperationalError as op_e:
-            if "duplicate column name" not in str(op_e).lower():
-                return jsonify({"success": False, "error": f"ALTER TABLE failed: {str(op_e)}"}), 500
-
-        # Do the upgrade
-        conn.execute("UPDATE users SET premium_plan = ?, role = 'premium' WHERE id = ?", (plan, user_id))
-        try:
-            conn.execute("UPDATE users SET is_premium = 1 WHERE id = ?", (user_id,))
-        except sqlite3.OperationalError:
-            pass
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        cursor.execute(f"INSERT INTO chat_history (session_id, role, content, mood_detected) VALUES ({placeholder}, 'user', {placeholder}, {placeholder})", (session_id, encrypt_data(msg), mood))
+        cursor.execute(f"INSERT INTO chat_history (session_id, role, content) VALUES ({placeholder}, 'ai', {placeholder})", (session_id, encrypt_data(reply_text)))
+        cursor.execute(f"UPDATE users SET coins = coins + 5 WHERE id = {placeholder}", (user_id,))
         conn.commit()
-        return jsonify({"success": True, "message": f"Upgraded to {plan} premium!", "is_premium": True})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        conn.close()
+        
+    return jsonify({
+        "status": "success",
+        "reply": reply_text,
+        "mood": mood,
+        "coinsEarned": 5
+    })
 
-@app.route('/test', methods=['GET'])
-def simple_test():
-    return jsonify({"status": "success", "message": "Server is running"})
+@app.route('/api/user/export-data', methods=['GET'])
+@login_required
+def export_user_data():
+    user_id = get_logged_in_user_id()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        user = cursor.execute(f"SELECT username, email, coins, streak FROM users WHERE id = {placeholder}", (user_id,)).fetchone()
+        bookings = cursor.execute(f"SELECT * FROM therapy_bookings WHERE user_id = {placeholder}", (user_id,)).fetchall()
+        
+    return jsonify({
+        "success": True,
+        "data": {
+            "profile": dict(user),
+            "bookings": [serialize_booking(b) for b in bookings],
+            "exported_at": datetime.now().isoformat()
+        }
+    })
+
+@app.route('/api/user/delete-account', methods=['DELETE'])
+@login_required
+def delete_user_account():
+    user_id = get_logged_in_user_id()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        cursor.execute(f"DELETE FROM therapy_bookings WHERE user_id = {placeholder}", (user_id,))
+        cursor.execute(f"DELETE FROM daily_checkins WHERE user_id = {placeholder}", (user_id,))
+        cursor.execute(f"DELETE FROM users WHERE id = {placeholder}", (user_id,))
+        conn.commit()
+    session.clear()
+    return jsonify({"success": True, "message": "Deleted."})
+
+@app.route('/api/user/buy-premium', methods=['POST'])
+@login_required
+def buy_premium():
+    user_id = get_logged_in_user_id()
+    plan = request.json.get('plan', 'monthly')
+    
+    # Production Bridge: Real Stripe Session vs Local Upgrade
+    if os.getenv("STRIPE_API_KEY") and not os.getenv("STRIPE_API_KEY").startswith("sk_test_sim"):
+        try:
+            price_id = os.getenv(f"STRIPE_PRICE_{plan.upper()}")
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{'price': price_id, 'quantity': 1}],
+                mode='subscription',
+                success_url=request.host_url + 'premium?success=true',
+                cancel_url=request.host_url + 'premium?canceled=true',
+                client_reference_id=str(user_id),
+            )
+            return jsonify({"success": True, "url": checkout_session.url})
+        except Exception as e:
+            return error_response(str(e), 500)
+    
+    # Simulation Mode
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        cursor.execute(f"UPDATE users SET premium_plan = {placeholder}, role = 'premium' WHERE id = {placeholder}", (plan, user_id))
+        conn.commit()
+    return jsonify({"success": True, "message": "Upgraded (Simulated)"})
+
+@app.route('/api/admin/doctors/<int:doctor_id>/verify', methods=['PATCH'])
+@admin_required
+def admin_verify_doctor(doctor_id):
+    data = request.json or {}
+    status = data.get('status', 'active') # active, suspended, pending
+    is_verified = 1 if status == 'active' else 0
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        cursor.execute(
+            f"UPDATE doctors SET is_verified = {placeholder}, profile_status = {placeholder}, updated_at = CURRENT_TIMESTAMP WHERE id = {placeholder}",
+            (is_verified, status, doctor_id)
+        )
+        conn.commit()
+    
+    log_audit_event("doctor_verification_updated", actor_type="admin", actor_id=get_logged_in_user_id(), entity_type="doctor", entity_id=doctor_id, details={"status": status})
+    return jsonify({"success": True, "message": f"Doctor status updated to {status}"})
+
+@app.route('/api/user/status', methods=['GET'])
+@login_required
+def get_user_status():
+    user_id = get_logged_in_user_id()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholder = "%s" if IS_POSTGRES else "?"
+        user = cursor.execute(f"SELECT * FROM users WHERE id = {placeholder}", (user_id,)).fetchone()
+    if not user: return jsonify({"streak": 0, "coins": 0})
+    return jsonify({
+        "streak": user["streak"] or 0,
+        "coins": user["coins"] or 0,
+        "premium_plan": user["premium_plan"] or "free",
+        "last_mood": user["last_mood_tag"] or "neutral"
+    })
 
 if __name__ == "__main__":
     os.makedirs('static/audio', exist_ok=True)
-    
-    safe_print("\n" + "="*60)
-    safe_print("Starting MoodMate Server with Local LLM & API Fallback")
-    safe_print("="*60)
-    safe_print(f"Database: {DB_PATH}")
-    safe_print(f"Audio folder: {AUDIO_FOLDER}")
-    safe_print("AI Service: Local (Ollama) + Cloud (Groq)")
-    safe_print(f"ElevenLabs TTS: {'Enabled' if ELEVENLABS_API_KEY else 'Disabled'}")
-    safe_print("="*60)
-    
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=os.getenv("FLASK_DEBUG", "false").lower() == "true", threaded=True)

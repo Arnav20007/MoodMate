@@ -31,6 +31,7 @@ export default function DoctorDashboard({ doctor, onLogout }) {
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [rescheduleSlot, setRescheduleSlot] = useState('');
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -57,6 +58,7 @@ export default function DoctorDashboard({ doctor, onLogout }) {
 
   useEffect(() => {
     setNotes(selectedAppt?.notes || '');
+    setRescheduleSlot(selectedAppt?.time || '');
   }, [selectedAppt]);
 
   const updateBooking = async (bookingId, payload, successMessage) => {
@@ -96,6 +98,10 @@ export default function DoctorDashboard({ doctor, onLogout }) {
     showToast(`Session opened for ${appt.name}. Add notes and mark it complete when finished.`, '#4f46e5');
   };
   const handleComplete = (id) => updateBooking(id, { status: 'completed' }, 'Session marked complete.');
+  const handleReschedule = async (appt = selectedAppt) => {
+    if (!appt || !rescheduleSlot || rescheduleSlot === appt.time) return;
+    await updateBooking(appt.id, { time: rescheduleSlot }, 'Session rescheduled.');
+  };
 
   const saveNotes = async () => {
     if (!selectedAppt) {
@@ -107,9 +113,9 @@ export default function DoctorDashboard({ doctor, onLogout }) {
     setIsSaving(false);
   };
 
-  const activeAppts = appts.filter((appt) => appt.status !== 'declined');
+  const activeAppts = appts.filter((appt) => !['declined', 'cancelled'].includes(appt.status));
   const newBookings = activeAppts.filter((appt) => appt.status === 'new');
-  const upcomingAppts = activeAppts.filter((appt) => appt.status === 'upcoming');
+  const upcomingAppts = activeAppts.filter((appt) => ['upcoming', 'reschedule_requested'].includes(appt.status));
   const completedAppts = activeAppts.filter((appt) => appt.status === 'completed');
   const totalEarnings = completedAppts.reduce((sum, appt) => sum + (appt.coins || currentDoctor.pricePerSession || 0), 0);
   const todayEarnings = completedAppts.reduce((sum, appt) => sum + (appt.coins || currentDoctor.pricePerSession || 0), 0);
@@ -131,7 +137,7 @@ export default function DoctorDashboard({ doctor, onLogout }) {
     <div className="dd-page">
       <div className="dd-banner">
         <div className="dd-banner-top">
-          <span className="dd-banner-label">Doctor Portal</span>
+          <span className="dd-banner-label">Provider Workspace Preview</span>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button
               className="dd-online-badge"
@@ -156,12 +162,13 @@ export default function DoctorDashboard({ doctor, onLogout }) {
           <div className="dd-doc-avatar">{currentDoctor.initials}</div>
           <div>
             <h1>{currentDoctor.name}</h1>
-            <p>{currentDoctor.spec}</p>
+            <p>{currentDoctor.spec || currentDoctor.specialization}</p>
             <div className="dd-doc-meta">
               <span className="dd-doc-meta-item">Rating {currentDoctor.rating} ({currentDoctor.reviews} reviews)</span>
-              <span className="dd-doc-meta-item">{currentDoctor.experience}</span>
-              <span className="dd-doc-meta-item">{currentDoctor.languages.join(', ')}</span>
-              <span className="dd-doc-meta-item">Rs {currentDoctor.pricePerSession}/session</span>
+              <span className="dd-doc-meta-item">{currentDoctor.experience || `${currentDoctor.experienceYears || 0} years`}</span>
+              <span className="dd-doc-meta-item">{(currentDoctor.languages || []).join(', ')}</span>
+              <span className="dd-doc-meta-item">Rs {currentDoctor.pricePerSession || currentDoctor.price}/session</span>
+              <span className="dd-doc-meta-item">Sample provider profile</span>
             </div>
           </div>
         </div>
@@ -237,7 +244,7 @@ export default function DoctorDashboard({ doctor, onLogout }) {
                 <div className="dd-empty"><p>No upcoming sessions yet. Approved bookings will appear here.</p></div>
               ) : upcomingAppts.map((appt) => (
                 <div key={appt.id} className="dd-appt-card upcoming" onClick={() => setSelectedAppt(selectedAppt?.id === appt.id ? null : appt)} style={{ cursor: 'pointer' }}>
-                  <span className="dd-status upcoming">Upcoming</span>
+                    <span className="dd-status upcoming">{appt.status === 'reschedule_requested' ? 'Reschedule requested' : 'Upcoming'}</span>
                   <div className="dd-appt-time">
                     <span className="time">{appt.time?.split(' ').slice(1).join(' ')}</span>
                     <span className="day">{appt.time?.split(' ')[0]}</span>
@@ -253,12 +260,33 @@ export default function DoctorDashboard({ doctor, onLogout }) {
                       <div style={{ marginTop: '10px', padding: '10px', background: 'white', borderRadius: '10px', border: '1px solid #ede9fe' }}>
                         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selected session</div>
                         <div style={{ fontSize: '13px', color: '#374151' }}>Phone: {appt.phone}</div>
+                        <div style={{ marginTop: '10px' }}>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reschedule slot</div>
+                          <select
+                            value={selectedAppt?.id === appt.id ? rescheduleSlot : appt.time}
+                            onChange={(event) => setRescheduleSlot(event.target.value)}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #ddd6fe', fontSize: '13px' }}
+                          >
+                            {(currentDoctor.availability || []).map((slot) => (
+                              <option key={slot} value={slot}>{slot}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
                   <div className="dd-appt-actions" onClick={(e) => e.stopPropagation()}>
                     <button className="dd-btn-start" onClick={() => handleStart(appt)}>Start Session</button>
                     <button className="dd-btn-notes" onClick={() => setSelectedAppt(appt)}>Add Notes</button>
+                    <button
+                      className="dd-btn-notes"
+                      onClick={() => {
+                        setSelectedAppt(appt);
+                        setRescheduleSlot(appt.time);
+                      }}
+                    >
+                      Open Reschedule
+                    </button>
                     <button className="dd-btn-approve" onClick={() => handleComplete(appt.id)}>Complete</button>
                   </div>
                 </div>
@@ -307,12 +335,12 @@ export default function DoctorDashboard({ doctor, onLogout }) {
           </div>
 
           <div className="dd-earnings">
-            <h3>Earnings Overview</h3>
+            <h3>Booking Summary Preview</h3>
             <div className="dd-earn-row"><span className="dd-earn-label">Today</span><span className="dd-earn-value green">Rs {todayEarnings.toLocaleString('en-IN')}</span></div>
             <div className="dd-earn-row"><span className="dd-earn-label">Pending revenue</span><span className="dd-earn-value purple">Rs {expectedRevenue.toLocaleString('en-IN')}</span></div>
             <div className="dd-earn-row"><span className="dd-earn-label">Total earned</span><span className="dd-earn-value">Rs {totalEarnings.toLocaleString('en-IN')}</span></div>
             <div className="dd-earn-row"><span className="dd-earn-label">Avg session rating</span><span className="dd-earn-value">{currentDoctor.rating}</span></div>
-            <div className="dd-earn-row"><span className="dd-earn-label">Next payout</span><span className="dd-earn-value green">{nextPayout}</span></div>
+            <div className="dd-earn-row"><span className="dd-earn-label">Next payout estimate</span><span className="dd-earn-value green">{nextPayout}</span></div>
           </div>
 
           <div className="dd-section" style={{ marginBottom: 0 }}>
@@ -330,6 +358,9 @@ export default function DoctorDashboard({ doctor, onLogout }) {
               placeholder="Add private notes for a patient session..."
               disabled={!selectedAppt}
             />
+            <button className="dd-btn-notes" style={{ width: '100%', marginTop: '10px' }} onClick={() => handleReschedule()} disabled={!selectedAppt || rescheduleSlot === selectedAppt.time}>
+              Confirm Reschedule
+            </button>
             <button className="dd-notes-save" onClick={saveNotes} disabled={!selectedAppt || isSaving}>
               {isSaving ? 'Saving...' : 'Save Notes'}
             </button>

@@ -3,26 +3,37 @@
   "name": "MoodMate - Your AI Wellness Companion",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
-    {
       "src": "logo192.png",
-      "type": "image/png",
       "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#4A7C59",
-  "background_color": "#F5F3EF",
+  "theme_color": "#2A4535",
+  "background_color": "#F2F1EC",
   "orientation": "portrait",
-  "description": "Empathetic mental health support and personal growth tracking, powered by AI."
+  "description": "Empathetic mental health support and personal growth tracking, powered by AI.",
+  "shortcuts": [
+    {
+      "name": "Chat with Coach",
+      "short_name": "Coach",
+      "description": "Get immediate AI emotional support",
+      "url": "/?tab=coach",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Today's Plan",
+      "short_name": "Today",
+      "description": "View your wellness rituals",
+      "url": "/?tab=profile",
+      "icons": [{ "src": "logo192.png", "sizes": "192x192" }]
+    }
+  ]
 }

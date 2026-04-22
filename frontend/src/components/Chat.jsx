@@ -63,6 +63,29 @@ const FEATURE_CARDS = [
   { title: 'Real next step', body: 'If you need more than reflection, the app can point you toward care options.' },
 ];
 
+const MOOD_INTERVENTIONS = {
+  sad: {
+    title: "Gentle Mood Lift",
+    desc: "When things feel heavy, small physical shifts can help. Would you like a 3-minute behavioral activation exercise?",
+    action: "Guide me"
+  },
+  anxious: {
+    title: "Grounding Support",
+    desc: "Anxiety often lives in the body. Let's try a Box Breathing routine to steady your nervous system.",
+    action: "Start Breathing"
+  },
+  tired: {
+    title: "Restorative Pause",
+    desc: "Your battery feels low. A short progressive muscle relaxation can help you recharge without effort.",
+    action: "Help me rest"
+  },
+  angry: {
+    title: "Release Tension",
+    desc: "Frustration needs a safe outlet. Let's try some physical release or expressive journaling right now.",
+    action: "Release now"
+  }
+};
+
 function Chat({ user }) {
   const storageKey = `moodmate_chat_${user?.id || 'guest'}`;
   const [messages, setMessages] = useState(() => {
@@ -365,17 +388,15 @@ function Chat({ user }) {
       <div className="chat-box">
         <div className="chat-notice-bar">
           <span className="chat-notice-label">Care note</span>
-          <p>AI companion, not a therapist. If you are in crisis, contact iCall at 9152987821.</p>
+          <p>AI companion, not a therapist or emergency service. If you are in immediate danger, use local emergency support or the SOS crisis numbers in the app.</p>
         </div>
 
         {userMessageCount === 0 && !isTyping && (
           <section className="chat-intro-panel">
             <div className="chat-intro-copy">
-              <span className="chat-section-kicker">Start gently</span>
-              <h3>You do not need the perfect words to begin.</h3>
+              <h3>Hey... I'm here with you.</h3>
               <p>
-                Pick a prompt that fits your mood, or type freely. The first message can be as small as
-                "I do not know where to start."
+                How are you feeling right now?
               </p>
             </div>
 
@@ -388,36 +409,24 @@ function Chat({ user }) {
                 >
                   <span className="chat-starter-icon">{starter.icon}</span>
                   <strong>{starter.label}</strong>
-                  <span>{starter.hint}</span>
                 </button>
-              ))}
-            </div>
-
-            <div className="chat-pill-row">
-              {MOOD_STARTERS.map((starter) => (
-                <button
-                  key={starter.label}
-                  className="chat-starter-pill"
-                  onClick={() => sendMessageCore(starter.message)}
-                >
-                  <span>{starter.icon}</span>
-                  {starter.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="chat-feature-strip">
-              {FEATURE_CARDS.map((feature) => (
-                <div key={feature.title} className="chat-feature-card">
-                  <h4>{feature.title}</h4>
-                  <p>{feature.body}</p>
-                </div>
               ))}
             </div>
           </section>
         )}
 
         <div className="chat-messages-container">
+          {user?.lastMood && MOOD_INTERVENTIONS[user.lastMood] && (
+            <div className={`mood-intervention-card ${user.lastMood}`}>
+              <div className="intervention-meta">Recommended for you</div>
+              <h3>{MOOD_INTERVENTIONS[user.lastMood].title}</h3>
+              <p>{MOOD_INTERVENTIONS[user.lastMood].desc}</p>
+              <button onClick={() => sendMessageCore(MOOD_INTERVENTIONS[user.lastMood].desc)} className="intervention-btn">
+                {MOOD_INTERVENTIONS[user.lastMood].action}
+              </button>
+            </div>
+          )}
+
           {messages.map((message) => (
             <div key={message.id} className={`chat-message ${message.sender}`}>
               <div className="message-content">

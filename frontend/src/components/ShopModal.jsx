@@ -2,11 +2,7 @@ import React, { useState } from 'react';
 import './Shop.css';
 import { API_BASE_URL } from '../api';
 
-// Placed here for demonstration
-// In src/components/Shop.jsx
-
 const sampleShopItems = [
-    // Themes
     {id: 1, name: "Sunset", description: "Warm orange and purple tones.", price: 50, category: "theme", permanent: true, previewColor: "linear-gradient(135deg, #ff7e5f, #feb47b)"},
     {id: 2, name: "Ocean", description: "Calming deep blue gradients.", price: 50, category: "theme", permanent: true, previewColor: "linear-gradient(135deg, #4facfe, #00f2fe)"},
     {id: 3, name: "Forest", description: "Lush, natural green shades.", price: 50, category: "theme", permanent: true, previewColor: "linear-gradient(135deg, #56ab2f, #a8e063)"},
@@ -14,21 +10,17 @@ const sampleShopItems = [
     {id: 5, name: "Serene Sunrise", description: "Soft pinks and yellows.", price: 60, category: "theme", permanent: true, previewColor: "linear-gradient(135deg, #f6d365, #fda085)"},
     {id: 17, name: "Midnight Calm", description: "A deep, relaxing dark theme.", price: 75, category: "theme", permanent: true, previewColor: "linear-gradient(135deg, #2c3e50, #4ca1af)"},
     {id: 21, name: "Animated Stars", description: "Gently twinkling stars background.", price: 120, category: "theme", permanent: true, previewIcon: "🌌"},
-    // Avatars
     {id: 11, name: "The Astronaut", description: "For the explorers of the mind.", price: 120, category: "avatar", permanent: true, previewIcon: "👨‍🚀"},
     {id: 12, name: "Nature Lover", description: "For those grounded in nature.", price: 90, category: "avatar", permanent: true, previewIcon: "🌿"},
     {id: 13, name: "The Phoenix", description: "Symbolizing rebirth and resilience.", price: 150, category: "avatar", permanent: true, previewIcon: "🔥"},
     {id: 14, name: "The Artist", description: "For the creative and expressive souls.", price: 95, category: "avatar", permanent: true, previewIcon: "🎨"},
-    // Cosmetics
     {id: 6, name: "Gold Avatar Frame", description: "A golden frame for your avatar.", price: 100, category: "cosmetic", permanent: true, previewIcon: "🖼️"},
     {id: 19, name: "Mood Stickers Pack", description: "20 exclusive stickers for chat.", price: 40, category: "cosmetic", permanent: true, previewIcon: "🎭"},
     {id: 22, name: "Gratitude Journal Skin", description: "A beautiful new look for your journal.", price: 30, category: "cosmetic", permanent: true, previewIcon: "📔"},
-    // Content
     {id: 7, name: "Meditation Pack", description: "10 new guided meditations.", price: 75, category: "content", permanent: true, previewIcon: "🧘"},
     {id: 9, name: "Sleep Stories Pack", description: "10 bedtime stories for deep sleep.", price: 60, category: "content", permanent: true, previewIcon: "🌙"},
     {id: 21, name: "Relaxation Sounds", description: "10 new soundscapes (Rain, Forest, etc.).", price: 50, category: "content", permanent: true, previewIcon: "🎶"},
     {id: 23, name: "Self-Confidence Course", description: "A 5-part audio course.", price: 150, category: "content", permanent: true, previewIcon: "🚀"},
-    // Utilities
     {id: 8, name: "Second Chance Token", description: "Save your streak if you miss a day.", price: 30, category: "utility", permanent: false, previewIcon: "⚡"},
     {id: 24, name: "Double Coin Booster (24h)", description: "Earn 2x coins for 24 hours.", price: 50, category: "utility", permanent: false, previewIcon: "💰"},
     {id: 25, name: "Journal Prompt Pack", description: "50 new prompts for your journal.", price: 25, category: "utility", permanent: true, previewIcon: "✍️"}
@@ -58,7 +50,7 @@ function Shop({ user, onUpdateUser }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ item_id: item.id, price: item.price, user_id: user?.id || 1 })
+                body: JSON.stringify({ item_id: item.id, price: item.price })
             });
             const data = await response.json();
             if (response.ok) {
