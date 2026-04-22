@@ -5,9 +5,9 @@ export function getApiBaseUrl() {
     return configured.replace(/\/+$/, '');
   }
 
-  // If on Vercel/Production, use relative path to talk to the same domain
+  // Fallback to Render production if not on localhost
   if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return '';
+    return 'https://moodmate-8-sucu.onrender.com';
   }
 
   return 'http://localhost:5000';
